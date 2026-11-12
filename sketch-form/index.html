@@ -6,269 +6,176 @@
 <title>Sample Sketch Formu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500;600&family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <style>
-/* Düzen: solda ayar paneli, sağda gerçek A4 ölçülerinde sayfa önizlemesi */
+/* Düzen: solda ayar paneli, sağda tek sayfalık yatay A3 önizleme (ekrana sığacak şekilde ölçeklenir) */
 :root{
-  --ui-bg:#eef0f2; --ui-panel:#ffffff; --ui-line:#d9dde2; --ui-fg:#1d2228; --ui-muted:#6a737d; --ui-accent:#2a3f8f;
-  --ink:#1b1b1b; --ink-blue:#1f3ea8;
-  --f-brand:"Cormorant Garamond", "Times New Roman", serif;
+  --ui-bg:#e9ecef; --ui-panel:#ffffff; --ui-line:#d7dce1; --ui-fg:#1c2128; --ui-muted:#68717b; --ui-accent:#1c2a5a; --ui-warn:#a4471c;
   --f-ui:"Jost", "Helvetica Neue", Arial, sans-serif;
-  --f-hand:"Kalam", "Comic Sans MS", cursive;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--ui-bg);color:var(--ui-fg);font:14px/1.45 var(--f-ui)}
 button,input,select,textarea{font:inherit;color:inherit}
-.app{display:grid;grid-template-columns:380px 1fr;height:100%}
-aside{background:var(--ui-panel);border-right:1px solid var(--ui-line);overflow-y:auto;padding:18px 18px 40px}
-main{overflow:auto;padding:24px;position:relative}
-h1{font:500 22px/1.1 var(--f-brand);letter-spacing:.04em;margin:0 0 4px}
-.lead{color:var(--ui-muted);font-size:12.5px;margin:0 0 14px}
-details{border-top:1px solid var(--ui-line);padding:10px 0}
-summary{cursor:pointer;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;list-style:none;display:flex;justify-content:space-between}
-summary::after{content:"+";color:var(--ui-muted)} details[open] summary::after{content:"–"}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:10px}
+.app{display:grid;grid-template-columns:390px 1fr;height:100%}
+aside{background:var(--ui-panel);border-right:1px solid var(--ui-line);overflow-y:auto;padding:18px 18px 48px}
+main{overflow:auto;padding:0 24px 24px;position:relative}
+h1{font:600 19px/1.15 var(--f-ui);letter-spacing:.02em;margin:0 0 4px}
+.lead{color:var(--ui-muted);font-size:12.5px;margin:0 0 12px}
+section.panel{border-top:1px solid var(--ui-line);padding:12px 0}
+.ph{font-weight:600;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.tpl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tpl label{border:1.5px solid var(--ui-line);border-radius:8px;padding:8px;cursor:pointer;font-size:12.5px;display:flex;flex-direction:column;gap:6px}
+.tpl input{position:absolute;opacity:0;pointer-events:none}
+.tpl label:has(input:checked){border-color:var(--ui-accent);background:#f2f4fa}
+.tpl label:has(input:focus-visible){outline:2px solid var(--ui-accent)}
+.mini{height:46px;border-radius:4px;background:#eef0f2;position:relative;overflow:hidden}
+.mini i{position:absolute;background:#9aa3b5;border-radius:1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
 .full{grid-column:1/-1}
 label.f{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--ui-muted)}
-label.chk{display:flex;align-items:center;gap:6px;font-size:12.5px}
-input[type=text],input[type=number],select,textarea{border:1px solid var(--ui-line);border-radius:6px;padding:6px 8px;background:#fff;width:100%;min-width:0;color:var(--ui-fg)}
-input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
+input[type=text],select,textarea{border:1px solid var(--ui-line);border-radius:6px;padding:6px 8px;background:#fff;width:100%;min-width:0;color:var(--ui-fg)}
+textarea{resize:vertical}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible,.drop:focus-visible{outline:2px solid var(--ui-accent);outline-offset:1px}
 .btn{border:1px solid var(--ui-line);background:#fff;border-radius:6px;padding:7px 10px;cursor:pointer;font-size:12.5px}
 .btn:hover{border-color:var(--ui-accent)}
+.btn:disabled{opacity:.45;cursor:default}
 .btn.primary{background:var(--ui-accent);border-color:var(--ui-accent);color:#fff}
-.btn.sm{padding:3px 7px;font-size:11.5px}
+.btn.sm{padding:2px 7px;font-size:11.5px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.drop{margin-top:10px;border:1.5px dashed #9aa6b4;border-radius:8px;padding:16px;text-align:center;color:var(--ui-muted);cursor:pointer;font-size:12.5px;background:#f7f9fb}
+.drop{border:1.5px dashed #9aa6b4;border-radius:8px;padding:12px;text-align:center;color:var(--ui-muted);cursor:pointer;font-size:12px;background:#f7f9fb}
 .drop strong{color:var(--ui-fg);display:block;font-size:13px}
-.drop.hover{border-color:var(--ui-accent);background:#eef2ff}
-.items{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-.item{display:grid;grid-template-columns:64px 1fr;gap:10px;border:1px solid var(--ui-line);border-radius:8px;padding:8px}
-.thumb{width:64px;height:86px;border-radius:4px;background:#e4e7eb center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ui-muted);text-align:center}
-.item .grid2{margin-top:0;gap:5px 6px}
-.item input{padding:4px 6px;font-size:12px}
-.swrow{display:flex;gap:6px;align-items:center;grid-column:1/-1}
-.chip{width:42px;height:26px;border-radius:4px;border:1px solid var(--ui-line);background:#ccc center/cover;cursor:pointer;flex:none}
-input[type=color]{width:30px;height:26px;border:1px solid var(--ui-line);border-radius:4px;padding:0;background:none;cursor:pointer}
+.drop.hover{border-color:var(--ui-accent);background:#eef1fa}
+.list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.item{display:grid;grid-template-columns:54px 1fr;gap:9px;border:1px solid var(--ui-line);border-radius:8px;padding:7px}
+.thumb{width:54px;height:72px;border-radius:4px;background:#e4e7eb center/contain no-repeat;font-size:10px;color:var(--ui-muted);display:flex;align-items:center;justify-content:center;text-align:center}
+.thumb.sq{height:54px;background-size:cover}
+.item .fields{display:flex;flex-direction:column;gap:5px;min-width:0}
+.item input[type=text],.item select{padding:4px 6px;font-size:12px}
+.tag{font-size:10.5px;color:var(--ui-muted);white-space:nowrap}
+.tag.auto{color:#2b6a3f}
+input[type=color]{width:28px;height:26px;border:1px solid var(--ui-line);border-radius:4px;padding:0;background:none;cursor:pointer;flex:none}
 .muted{color:var(--ui-muted);font-size:11.5px}
-.toolbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:-24px -24px 20px;padding:12px 24px;background:rgba(238,240,242,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--ui-line)}
+.status{font-size:11.5px;margin-top:6px;color:var(--ui-muted)}
+.status.err{color:var(--ui-warn)}
+.ocrimg{width:100%;max-height:90px;object-fit:contain;border-radius:4px;background:#f1f3f5;margin-top:8px}
+.toolbar{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin:0 -24px 20px;padding:12px 24px;background:rgba(233,236,239,.94);border-bottom:1px solid var(--ui-line)}
 .toolbar .info{margin-right:auto;align-self:center;color:var(--ui-muted);font-size:12.5px}
-#pages{display:flex;flex-direction:column;align-items:center;gap:24px;padding-bottom:40px}
-.toast{position:fixed;bottom:18px;right:18px;background:var(--ui-fg);color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+#stage{position:relative;margin:0 auto}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--ui-fg);color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:360px}
 .toast.on{opacity:1}
 .busy{position:fixed;inset:0;background:rgba(20,24,30,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;z-index:20}
 
-/* ---------- SAYFA (A4) ---------- */
-.sheet{width:210mm;height:297mm;flex:none;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.18);color:var(--ink);display:flex;flex-direction:column;
+/* ---------- SAYFA ---------- */
+.sheet{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.18);font-family:var(--f-ui);
   -webkit-print-color-adjust:exact;print-color-adjust:exact}
-.sheet.landscape{width:297mm;height:210mm}
-.bg-gray{background:linear-gradient(180deg,#d9d9d9 0%,#e9e9e8 45%,#dededd 100%)}
-.bg-white{background:#ffffff}
-.bg-cream{background:linear-gradient(180deg,#ece7df 0%,#f3efe9 50%,#e8e2d9 100%)}
-.s-head{text-align:center;padding:11mm 0 5mm;flex:none}
-.landscape .s-head{padding:7mm 0 3mm}
-.s-brand{font:400 46px/1 var(--f-brand);letter-spacing:.12em;padding-left:.12em}
-.landscape .s-brand{font-size:38px}
-.s-logo{max-height:20mm;max-width:80mm}
-.s-rule{width:16mm;height:1px;background:currentColor;opacity:.6;margin:4mm auto 3.5mm}
-.landscape .s-rule{margin:2.5mm auto 2.5mm}
-.s-sub{font:400 11px/1 var(--f-ui);letter-spacing:.32em;padding-left:.32em;text-transform:uppercase}
-.s-foot{flex:none;display:flex;justify-content:space-between;padding:2.5mm 8mm 3.5mm;font:500 8px/1 var(--f-ui);letter-spacing:.2em;text-transform:uppercase;opacity:.65}
-.photo{background-color:rgba(0,0,0,.04);background-position:center top;background-size:cover;background-repeat:no-repeat;position:relative}
-.photo.contain{background-size:contain;background-position:center bottom}
-.photo.empty{display:flex;align-items:center;justify-content:center;font:400 11px/1.4 var(--f-ui);letter-spacing:.15em;text-transform:uppercase;color:rgba(0,0,0,.35);border:1px dashed rgba(0,0,0,.18)}
-.hand{font-family:var(--f-hand);font-weight:700}
-.price{color:var(--ink-blue);font-family:var(--f-hand);font-weight:400}
-.swatch{background-size:cover;background-position:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sheet .abs{position:absolute}
+.img{background-repeat:no-repeat;background-position:center;background-size:cover}
+.img.contain{background-size:contain;background-position:center bottom}
+.ph-box{display:flex;align-items:center;justify-content:center;border:0.35mm dashed rgba(0,0,0,.22);color:rgba(0,0,0,.38);text-transform:uppercase;letter-spacing:.15em;text-align:center}
+.shadow{box-shadow:0 0.3mm 1.2mm rgba(0,0,0,.22)}
+.cap{text-align:center;text-transform:uppercase;line-height:1.3;overflow:hidden}
+.bar{display:flex;align-items:center;justify-content:center;text-transform:uppercase;font-weight:600;letter-spacing:.04em;white-space:nowrap;overflow:hidden}
 
-/* Lookbook + Kumaş (fotoğraftaki format) */
-.lb-body{flex:1;display:grid;grid-template-columns:repeat(var(--cols),1fr);min-height:0;margin:0 6mm}
-.lb-col{display:grid;grid-template-rows:1fr auto 46mm;min-height:0;border-left:1.6px solid rgba(255,255,255,.95)}
-.lb-col:first-child{border-left:0}
-.bg-white .lb-col{border-left-color:#d6d6d6}
-.lb-col .photo{margin:0 2mm;background-color:transparent}
-.lb-col .photo.empty{margin:2mm 3mm}
-.lb-label{display:flex;align-items:baseline;gap:6mm;padding:2.5mm 4mm 1.5mm;font-size:19px;white-space:nowrap;overflow:hidden;border-top:1.6px solid rgba(255,255,255,.95)}
-.bg-white .lb-label{border-top-color:#d6d6d6}
-.lb-label .price{font-size:17px;margin-left:auto}
-.lb-label .nt{font-size:12px;opacity:.75;font-family:var(--f-ui);font-weight:400;overflow:hidden;text-overflow:ellipsis}
-.lb-sw{display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.06);border-top:1.6px solid rgba(255,255,255,.95)}
-.bg-white .lb-sw{background:#f2f2f2;border-top-color:#d6d6d6}
-.lb-sw .swatch{width:62%;height:68%}
-.lb-sw .sw-name{position:absolute}
-.lb-swwrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5mm}
-.lb-swwrap .swatch{width:62%;height:auto;flex:1;max-height:32mm;margin-top:4mm}
-.lb-swwrap .cap{font:400 8.5px/1 var(--f-ui);letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-bottom:3mm;min-height:8.5px}
-
-/* Teknik föy */
-.tk-body{flex:1;display:grid;grid-template-rows:1fr 1fr;gap:5mm;padding:0 10mm 2mm;min-height:0}
-.landscape .tk-body{grid-template-rows:none;grid-template-columns:1fr 1fr}
-.tk-item{display:grid;grid-template-columns:44% 1fr;gap:6mm;min-height:0;border-top:1px solid rgba(0,0,0,.25);padding-top:4mm}
-.tk-item .photo{min-height:0}
-.tk-right{display:flex;flex-direction:column;gap:3mm;min-width:0;min-height:0}
-.tk-title{font:500 22px/1 var(--f-brand);letter-spacing:.06em}
-.tk-table{width:100%;border-collapse:collapse;font:400 10.5px/1.3 var(--f-ui)}
-.tk-table th{text-align:left;font-weight:500;letter-spacing:.12em;text-transform:uppercase;font-size:8.5px;opacity:.7;padding:1.6mm 2mm 1.6mm 0;width:30mm;vertical-align:top;border-bottom:1px solid rgba(0,0,0,.12)}
-.tk-table td{padding:1.6mm 0;border-bottom:1px solid rgba(0,0,0,.12);word-break:break-word}
-.tk-table td.hand{font-size:14px;font-weight:700}
-.tk-sw{display:flex;gap:4mm;align-items:flex-end;margin-top:auto}
-.tk-sw .swatch{width:34mm;height:24mm}
-.tk-note{flex:1;min-height:24mm;border:1px dashed rgba(0,0,0,.25);padding:2mm;font:400 14px/1.3 var(--f-hand);color:var(--ink-blue)}
-
-/* Detay föyü (model + açıklamalı detaylar) */
-.dt-wrap{flex:1;display:grid;grid-template-columns:40% 1fr;gap:6mm;padding:8mm 8mm 0;min-height:0}
-.dt-left{position:relative;display:grid;grid-template-rows:auto 1fr;min-height:0}
-.dt-title{font:300 30px/1 var(--f-ui);letter-spacing:.06em;padding-bottom:3mm;border-bottom:1.2px solid currentColor;width:max-content;max-width:100%}
-.dt-color{font:400 14px/1 var(--f-ui);letter-spacing:.3em;margin-top:6mm;padding-bottom:2mm;border-bottom:1.2px solid currentColor;width:max-content;max-width:100%;text-transform:uppercase}
-.dt-left .photo{margin-top:4mm}
-.dt-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:4mm 4mm;min-height:0}
-.dt-cell{display:grid;grid-template-rows:1fr auto;gap:1.5mm;min-height:0}
-.dt-cell .photo{background-position:center;background-color:rgba(0,0,0,.05)}
-.cap2{text-align:center;font:400 9px/1.35 var(--f-ui);letter-spacing:.06em;text-transform:uppercase;min-height:9px}
-.cap2 b{font-weight:400;font-size:10px;display:block}
-
-/* Renk seçenekleri */
-.rk-wrap{flex:1;display:grid;grid-template-columns:44mm 1fr 52mm;gap:6mm;padding:8mm 8mm 0;min-height:0}
-.rk-side{display:flex;flex-direction:column;gap:3mm;min-height:0}
-.rk-brand{font:600 24px/1 var(--f-ui);letter-spacing:-.01em;color:#1c2a5a}
-.rk-brand img{max-width:100%;max-height:14mm}
-.rk-sub{font:400 11px/1 var(--f-ui);letter-spacing:.35em;text-align:center;margin-top:2mm;color:#1c2a5a}
-.rk-line{width:22mm;height:1.5px;background:#1c2a5a;margin:3mm 0 2mm}
-.rk-box{background-size:cover;background-position:center;aspect-ratio:1.15;box-shadow:0 1px 3px rgba(0,0,0,.2);background-color:rgba(0,0,0,.06)}
-.rk-h{font:600 10px/1.2 var(--f-ui);letter-spacing:.04em;text-transform:uppercase;color:#1c2a5a}
-.rk-comp{font:500 9.5px/1.45 var(--f-ui);letter-spacing:.04em;text-transform:uppercase;white-space:pre-line;color:#1c2a5a}
-.rk-cap{font:600 9px/1.35 var(--f-ui);letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#1c2a5a}
-.rk-mid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:3mm;min-height:0}
-.rk-model{display:grid;grid-template-rows:1fr auto;gap:3mm;min-height:0}
-.rk-model .photo{background-position:center bottom}
-.rk-bar{font:600 12px/1 var(--f-ui);letter-spacing:.04em;text-transform:uppercase;text-align:center;padding:2.2mm 1mm;margin:0 3mm 2mm}
-.rk-right{justify-content:center;gap:4mm}
-.rk-right .rk-box{aspect-ratio:1.25}
-
-/* Grid katalog */
-.gr-body{flex:1;display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-template-rows:repeat(var(--rows),1fr);gap:5mm;padding:0 8mm 2mm;min-height:0}
-.gr-cell{display:grid;grid-template-rows:1fr auto;min-height:0;gap:1.5mm}
-.gr-cap{display:flex;align-items:center;gap:2.5mm;font-size:14px;white-space:nowrap;overflow:hidden}
-.gr-cap .swatch{width:7mm;height:7mm;border-radius:50%;flex:none}
-.gr-cap .price{margin-left:auto;font-size:13px}
-
-.blank{visibility:hidden}
-
-@media (max-width:860px){
+@media (max-width:900px){
   .app{grid-template-columns:1fr;height:auto}
   aside{border-right:0;border-bottom:1px solid var(--ui-line)}
-  main{padding:16px}
-  .toolbar{margin:-16px -16px 16px;padding:10px 16px}
-  #pages{align-items:flex-start}
+  main{padding:0 16px 16px}
+  .toolbar{margin:0 -16px 16px;padding:10px 16px}
 }
 @media print{
   html,body{height:auto;background:#fff}
   aside,.toolbar,.toast{display:none!important}
   .app{display:block;height:auto}
   main{padding:0;overflow:visible}
-  #pages{gap:0;display:block;padding:0}
-  .sheet{box-shadow:none;page-break-after:always;break-after:page}
-  .sheet:last-child{page-break-after:auto;break-after:auto}
+  #stage{width:auto!important;height:auto!important;margin:0}
+  .sheet{position:relative;transform:none!important;box-shadow:none}
 }
-@media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
-<style id="pageStyle">@page{size:A4 portrait;margin:0}</style>
+<style id="pageStyle">@page{size:A3 landscape;margin:0}</style>
 </head>
 <body>
 <div class="app">
 <aside>
   <h1>Sample Sketch Formu</h1>
-  <p class="lead">Model ve kumaş görsellerini yükleyin; form sayfaları otomatik dizilir. PDF'i sağ üstten alın.</p>
+  <p class="lead">Tek sayfa, yatay. Görsel ekledikçe her şey sayfaya sığacak şekilde orantılı küçülür.</p>
 
-  <details open>
-    <summary>1 · Görseller</summary>
-    <div class="drop" id="dropModels" tabindex="0" role="button">
-      <strong>Model / ürün görselleri</strong>
-      Tıklayın veya buraya sürükleyin (çoklu seçim). Her görsel bir ürün olur.
+  <section class="panel">
+    <div class="ph">Şablon</div>
+    <div class="tpl">
+      <label><input type="radio" name="layout" value="renk"><span class="mini"><i style="left:4%;top:10%;width:16%;height:80%"></i><i style="left:25%;top:10%;width:12%;height:70%"></i><i style="left:40%;top:10%;width:12%;height:70%"></i><i style="left:55%;top:10%;width:12%;height:70%"></i><i style="left:80%;top:10%;width:16%;height:35%"></i><i style="left:80%;top:55%;width:16%;height:35%"></i></span>Renk Seçenekleri</label>
+      <label><input type="radio" name="layout" value="detay"><span class="mini"><i style="left:4%;top:10%;width:32%;height:84%"></i><i style="left:42%;top:10%;width:16%;height:24%"></i><i style="left:61%;top:10%;width:16%;height:24%"></i><i style="left:80%;top:10%;width:16%;height:24%"></i><i style="left:42%;top:40%;width:16%;height:24%"></i><i style="left:61%;top:40%;width:16%;height:24%"></i><i style="left:80%;top:40%;width:16%;height:24%"></i></span>Detay Föyü</label>
     </div>
-    <div class="drop" id="dropSwatches" tabindex="0" role="button">
-      <strong>Kumaş görselleri</strong>
-      Sırayla, kumaşı olmayan ürünlere atanır.
-    </div>
-    <input type="file" id="fileModels" accept="image/*" multiple hidden>
-    <input type="file" id="fileSwatches" accept="image/*" multiple hidden>
-    <input type="file" id="fileOne" accept="image/*" hidden>
-    <p class="muted" style="margin:8px 0 0">Kumaş görseli yoksa, ürün tipine göre fotoğraftan renk örneği otomatik çıkarılır.</p>
-  </details>
+  </section>
 
-  <details open>
-    <summary>2 · Format</summary>
+  <section class="panel">
+    <div class="ph">Sayfa ve başlık</div>
     <div class="grid2">
-      <label class="f">Marka<input type="text" id="brand"></label>
-      <label class="f">Ürün tipi
-        <select id="product">
-          <option>Şort</option><option>Pantolon</option><option>Hırka</option><option>Polo / T-shirt</option><option>Gömlek</option><option>Ceket</option><option>Diğer</option>
-        </select></label>
-      <label class="f full">Alt başlık<input type="text" id="subtitle"></label>
-      <label class="f">Şablon
-        <select id="layout">
-          <option value="lookbook">Lookbook + Kumaş</option>
-          <option value="teknik">Teknik Föy</option>
-          <option value="grid">Grid Katalog</option>
-          <option value="detay">Detay Föyü (model + detaylar)</option>
-          <option value="renk">Renk Seçenekleri</option>
-        </select></label>
-      <label class="f">Sütun
-        <select id="cols"><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
-      <label class="f">Sayfa yönü
-        <select id="orient"><option value="portrait">Dikey (A4)</option><option value="landscape">Yatay (A4)</option></select></label>
+      <label class="f">Kağıt
+        <select id="paper"><option value="A3">A3 yatay</option><option value="A4">A4 yatay</option></select></label>
       <label class="f">Zemin
-        <select id="bg"><option value="gray">Gri degrade</option><option value="white">Beyaz</option><option value="cream">Krem</option></select></label>
-      <label class="f">Görsel kırpma
-        <select id="fit"><option value="cover">Doldur (kırp)</option><option value="contain">Sığdır</option></select></label>
+        <select id="bg"><option value="gray">Açık gri</option><option value="white">Beyaz</option></select></label>
+      <label class="f">Marka<input type="text" id="brand"></label>
+      <label class="f">Marka alt yazısı<input type="text" id="subtitle"></label>
+      <label class="f">Model adı (Detay Föyü)<input type="text" id="modelName"></label>
+      <label class="f">Ürün tipi (renk algılama)
+        <select id="product">
+          <option value="ust">Üst giyim / Hırka / Ceket</option>
+          <option value="takim">Takım (üst+alt)</option>
+          <option value="pantolon">Pantolon</option>
+          <option value="sort">Şort</option>
+        </select></label>
+      <label class="f">Yazı rengi
+        <span class="row"><input type="color" id="accent"><span class="muted">başlık, etiket</span></span></label>
       <label class="f">Logo
-        <span class="row"><button class="btn sm" id="logoBtn" type="button">Logo yükle</button><button class="btn sm" id="logoDel" type="button">Kaldır</button></span></label>
+        <span class="row"><button class="btn sm" id="logoBtn" type="button">Yükle</button><button class="btn sm" id="logoDel" type="button">Kaldır</button></span></label>
       <input type="file" id="fileLogo" accept="image/*" hidden>
-      <label class="f" id="modelNameWrap">Model adı<input type="text" id="modelName" placeholder="örn. BALYES-YLK"></label>
-      <label class="f full">Kumaş içeriği (Renk Seçenekleri)<textarea id="composition" rows="3" placeholder="%46 POLİAMİD&#10;%35 POLYESTER&#10;%19 LİKRA"></textarea></label>
-      <label class="f full">Alt bilgi (sayfa altı)<input type="text" id="footer" placeholder="örn. Numune talebi · Tedarikçi adı"></label>
-      <label class="chk"><input type="checkbox" id="handwrite"> El yazısı etiket</label>
-      <label class="chk"><input type="checkbox" id="showPrice"> Fiyat / not göster</label>
-      <label class="chk"><input type="checkbox" id="showFabricName"> Kumaş adını yaz</label>
-      <label class="chk"><input type="checkbox" id="pageNo"> Sayfa no</label>
     </div>
-    <div class="row" style="margin-top:12px">
-      <button class="btn" id="saveFmt" type="button">Formatı kaydet</button>
-      <button class="btn" id="expFmt" type="button">Format dışa aktar</button>
-      <button class="btn" id="impFmt" type="button">Format içe aktar</button>
-      <input type="file" id="fileFmt" accept=".json,application/json" hidden>
-    </div>
-  </details>
+  </section>
 
-  <details open>
-    <summary>3 · Ürünler <span class="muted" id="count"></span></summary>
-    <div class="row" style="margin-top:10px">
-      <label class="f" style="flex:1">Tüm ürünlere kod<input type="text" id="bulkCode" placeholder="örn. K:7"></label>
-      <button class="btn sm" id="bulkApply" type="button" style="align-self:flex-end">Uygula</button>
-      <button class="btn sm" id="clearAll" type="button" style="align-self:flex-end">Hepsini sil</button>
-    </div>
-    <div class="items" id="items"></div>
-  </details>
+  <section class="panel">
+    <div class="ph">Model görselleri <span class="muted" id="mcount"></span></div>
+    <div class="drop" id="dropModels" tabindex="0" role="button"><strong>Model / renk görselleri</strong>Tıklayın veya sürükleyin (çoklu). Renk adı otomatik yazılır.</div>
+    <input type="file" id="fileModels" accept="image/*" multiple hidden>
+    <div class="list" id="mlist"></div>
+  </section>
 
-  <details open>
-    <summary>4 · Detay görselleri <span class="muted" id="dcount"></span></summary>
-    <p class="muted" style="margin:8px 0 0">Detay Föyü ve Renk Seçenekleri şablonlarında kullanılır (fermuar, yaka, cep, kumaş yüzeyi, arka beden…).</p>
-    <div class="drop" id="dropDetails" tabindex="0" role="button"><strong>Detay görselleri</strong>Tıklayın veya sürükleyin (çoklu seçim).</div>
+  <section class="panel">
+    <div class="ph">Kumaş</div>
+    <div class="grid2">
+      <div class="drop" id="dropFabric" tabindex="0" role="button"><strong>Kumaş dokusu</strong>Sayfada gösterilir</div>
+      <div class="drop" id="dropLabel" tabindex="0" role="button"><strong>Kumaş içeriği etiketi</strong>Okunur, metne çevrilir</div>
+    </div>
+    <input type="file" id="fileFabric" accept="image/*" hidden>
+    <input type="file" id="fileLabel" accept="image/*" hidden>
+    <div class="row" style="margin-top:8px" id="fabricRow"></div>
+    <img class="ocrimg" id="labelPreview" alt="Okunan etiket" hidden>
+    <div class="status" id="ocrStatus"></div>
+    <label class="f" style="margin-top:8px">Kumaş içeriği (düzenlenebilir)
+      <textarea id="composition" rows="4" placeholder="%46 POLİAMİD&#10;%35 POLYESTER&#10;%19 LİKRA"></textarea></label>
+    <div class="status" id="compCheck"></div>
+  </section>
+
+  <section class="panel">
+    <div class="ph">Detay görselleri <span class="muted" id="dcount"></span></div>
+    <div class="drop" id="dropDetails" tabindex="0" role="button"><strong>Detay görselleri</strong>Fermuar, yaka, cep, iç yüzey, arka beden…</div>
     <input type="file" id="fileDetails" accept="image/*" multiple hidden>
-    <div class="items" id="dlist"></div>
-  </details>
+    <div class="list" id="dlist"></div>
+  </section>
 
-  <details>
-    <summary>Proje</summary>
-    <p class="muted">Görseller dahil tüm formu tek dosya olarak saklayın.</p>
+  <section class="panel">
+    <div class="ph">Kaydet</div>
     <div class="row">
-      <button class="btn" id="saveProj" type="button">Projeyi kaydet (.json)</button>
+      <button class="btn" id="saveFmt" type="button">Ayarları hatırla</button>
+      <button class="btn" id="saveProj" type="button">Projeyi kaydet</button>
       <button class="btn" id="openProj" type="button">Proje aç</button>
       <input type="file" id="fileProj" accept=".json,application/json" hidden>
     </div>
-  </details>
+    <p class="muted" style="margin:6px 0 0">Proje dosyası görseller dahil her şeyi saklar.</p>
+  </section>
 </aside>
 
 <main id="main">
@@ -277,55 +184,39 @@ input[type=color]{width:30px;height:26px;border:1px solid var(--ui-line);border-
     <button class="btn" id="printBtn" type="button">Yazdır / PDF olarak kaydet</button>
     <button class="btn primary" id="pdfBtn" type="button">PDF indir</button>
   </div>
-  <div id="pages"></div>
+  <div id="stage"></div>
 </main>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 (() => {
 const $ = s => document.querySelector(s);
-const FMT_KEY = 'sketchForm.format.v1';
+const FMT_KEY = 'sketchForm.v2';
+const PAPER = {A3:[420,297], A4:[297,210]};
 
-// Ürün tipine göre fotoğrafta kumaşın bulunduğu dikey bant (oran) ve teknik föy alanları
-const PRODUCTS = {
-  'Şort':          {band:[0.56,0.72], sizes:'S - XXL'},
-  'Pantolon':      {band:[0.55,0.82], sizes:'30 - 40'},
-  'Hırka':         {band:[0.30,0.55], sizes:'S - XXL'},
-  'Polo / T-shirt':{band:[0.28,0.50], sizes:'S - XXL'},
-  'Gömlek':        {band:[0.28,0.50], sizes:'S - XXL'},
-  'Ceket':         {band:[0.30,0.55], sizes:'46 - 56'},
-  'Diğer':         {band:[0.40,0.62], sizes:''}
-};
-
-const DEFAULT_FMT = {
-  brand:'MASDI', logo:null, subtitle:'MAYIS HAZİRAN SAMPLE', product:'Şort', layout:'lookbook',
-  cols:3, orient:'portrait', bg:'gray', fit:'cover', footer:'',
-  handwrite:true, showPrice:true, showFabricName:false, pageNo:true,
-  modelName:'', composition:''
-};
-
+// ---------- Durum ----------
+const DEFAULT_FMT = {layout:'renk', paper:'A3', bg:'gray', brand:'MARKA', subtitle:'KLASİK', modelName:'MODEL-ADI',
+  product:'takim', accent:'#1c2a5a', logo:null};
 let F = {...DEFAULT_FMT};
 try { const s = localStorage.getItem(FMT_KEY); if (s) F = {...F, ...JSON.parse(s)}; } catch(e){}
 
 const uid = () => Math.random().toString(36).slice(2,9);
-const newItem = (o={}) => ({id:uid(), img:null, swatch:null, color:'#8a8a8a', autoColor:true,
-  code:'K:7', ref:'', fabric:'', price:'', note:'', sizes:'', colorName:'', ...o});
-let details = [];
-const newDetail = (o={}) => ({id:uid(), img:null, t1:'', t2:'', ...o});
+const newModel = o => ({id:uid(), img:null, ar:0.42, color:'#888888', name:'', manual:false, ...o});
+const newDetail = o => ({id:uid(), img:null, t1:'', t2:'', side:'auto', ...o});
 
-// Örnek: yüklenen formdaki üç ürün (görseller boş, kodlar dolu)
-let items = [
-  newItem({ref:'RFH', price:'750', color:'#1f2124', autoColor:false}),
-  newItem({ref:'6BB', price:'750', color:'#3a3a36', autoColor:false}),
-  newItem({ref:'6Q1', price:'750', color:'#dcd8cc', autoColor:false})
-];
-let isSample = true;
+// Açılışta örnek düzen: görseller boş, yazılar örnek
+let models = [newModel({name:'SİYAH',color:'#17181b'}), newModel({name:'NAVY',color:'#25304f'}), newModel({name:'STONE',color:'#bdb5a8'})];
+let details = [newDetail({t1:'FERMUAR DETAYI'}), newDetail({t1:'SU İTİCİ', t2:'ÖZELLİK'}), newDetail({t1:'CEKET ETEK', t2:'BANT DETAYI'}), newDetail({t1:'PANTOLON', t2:'FLETO CEP'})];
+let fabric = null, labelImg = null;
+let composition = '%46 POLİAMİD\n%35 POLYESTER\n%19 LİKRA';
+let sampleModels = true, sampleDetails = true;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('on'),2200); }
+const upTR = s => String(s||'').toLocaleUpperCase('tr-TR');
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('on'),2600); }
 
-// ---------- Görsel okuma / küçültme / renk çıkarma ----------
+// ---------- Görsel okuma ----------
 function readImage(file, max=1800){
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -337,296 +228,410 @@ function readImage(file, max=1800){
         const k = Math.min(1, max/Math.max(im.width, im.height));
         const c = document.createElement('canvas');
         c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
-        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-        res(c.toDataURL('image/jpeg', 0.9));
+        const x = c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
+        res({url:c.toDataURL('image/jpeg',0.9), w:c.width, h:c.height, canvas:c});
       };
       im.src = r.result;
     };
     r.readAsDataURL(file);
   });
 }
-function sampleColor(url, band){
-  return new Promise(res => {
-    const im = new Image();
-    im.onload = () => {
-      const W=80, H=Math.round(80*im.height/im.width);
-      const c=document.createElement('canvas'); c.width=W; c.height=H;
-      const x=c.getContext('2d'); x.drawImage(im,0,0,W,H);
-      const y0=Math.floor(H*band[0]), y1=Math.max(y0+1,Math.floor(H*band[1]));
-      const d=x.getImageData(Math.floor(W*0.3), y0, Math.floor(W*0.4), y1-y0).data;
-      const px=[];
-      for(let i=0;i<d.length;i+=4){ px.push([d[i],d[i+1],d[i+2], .299*d[i]+.587*d[i+1]+.114*d[i+2]]); }
-      px.sort((a,b)=>a[3]-b[3]);
-      const mid = px.slice(Math.floor(px.length*.3), Math.ceil(px.length*.7));
-      const avg=[0,1,2].map(j=>Math.round(mid.reduce((s,p)=>s+p[j],0)/Math.max(1,mid.length)));
-      res('#'+avg.map(v=>v.toString(16).padStart(2,'0')).join(''));
-    };
-    im.onerror = () => res('#8a8a8a');
-    im.src = url;
-  });
-}
-async function autoColors(list=items){
-  const band = (PRODUCTS[F.product]||PRODUCTS['Diğer']).band;
-  await Promise.all(list.filter(it=>it.img && it.autoColor).map(async it => { it.color = await sampleColor(it.img, band); }));
-}
+const loadImg = url => new Promise(res => { const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=url; });
+const fileTitle = f => upTR(f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim()).slice(0,40);
 
-async function addModels(files){
-  files = [...files].filter(f => f.type.startsWith('image/'));
-  if(!files.length) return;
-  if(isSample){ items = []; isSample = false; }
-  for(const f of files){
-    try{
-      const url = await readImage(f);
-      const name = f.name.replace(/\.[^.]+$/,'');
-      const target = items.find(it => !it.img);
-      if(target){ target.img = url; target.autoColor = !target.swatch; }
-      else items.push(newItem({img:url, ref:name.slice(0,12), code:items[0]?.code ?? 'K:7'}));
-    }catch(e){ toast(e.message); }
+// ---------- Renk algılama ve adlandırma ----------
+const BANDS = {ust:[0.24,0.46], takim:[0.24,0.46], pantolon:[0.56,0.80], sort:[0.50,0.62]};
+const COLOR_NAMES = [
+  ['SİYAH','#16171a'],['ANTRASİT','#393b40'],['FÜME','#57595f'],['GRİ','#8b8d91'],['AÇIK GRİ','#bcbdbf'],
+  ['BEYAZ','#f5f5f3'],['KIRIK BEYAZ','#ece8de'],['EKRU','#e2dac8'],['KREM','#e9dcc0'],['BEJ','#cfbb9b'],
+  ['STONE','#bcb3a5'],['VİZON','#9c8a7a'],['CAMEL','#b18a5b'],['AÇIK KAHVE','#8a6a4f'],['KAHVE','#5a3f31'],['KOYU KAHVE','#3a2a22'],
+  ['HAKİ','#6e6a49'],['ZEYTİN','#55573a'],['YEŞİL','#2f6b45'],['KOYU YEŞİL','#24382c'],['MİNT','#a9d6c3'],
+  ['KOYU NAVY','#161c2d'],['NAVY','#26304d'],['İNDİGO','#2c3b68'],['SAKS','#2f58a0'],['MAVİ','#4a78b0'],['AÇIK MAVİ','#9dbbd8'],['PETROL','#1f4e5a'],
+  ['BORDO','#5c1f2a'],['KIRMIZI','#b3262e'],['TURUNCU','#d9732b'],['HARDAL','#c19a2e'],['SARI','#e3c246'],
+  ['PEMBE','#e3a5b5'],['PUDRA','#e6c7be'],['LİLA','#b4a2c9'],['MOR','#5a3d75']
+];
+function hex2rgb(h){ const n=parseInt(h.slice(1),16); return [n>>16,(n>>8)&255,n&255]; }
+function rgb2hex(r,g,b){ return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join(''); }
+function rgb2lab([r,g,b]){
+  const f=c=>{c/=255;return c>0.04045?Math.pow((c+0.055)/1.055,2.4):c/12.92};
+  let R=f(r),G=f(g),B=f(b);
+  let X=(R*.4124+G*.3576+B*.1805)/.95047, Y=R*.2126+G*.7152+B*.0722, Z=(R*.0193+G*.1192+B*.9505)/1.08883;
+  const g2=t=>t>0.008856?Math.cbrt(t):7.787*t+16/116;
+  X=g2(X);Y=g2(Y);Z=g2(Z);
+  return [116*Y-16, 500*(X-Y), 200*(Y-Z)];
+}
+const LABS = COLOR_NAMES.map(([n,h])=>[n,rgb2lab(hex2rgb(h))]);
+function nameColor(hex){
+  const l=rgb2lab(hex2rgb(hex)); let best=null,bd=1e9;
+  for(const [n,c] of LABS){ const d=(l[0]-c[0])**2+(l[1]-c[1])**2+(l[2]-c[2])**2; if(d<bd){bd=d;best=n;} }
+  return best;
+}
+// Fotoğraftaki baskın ürün rengini bul: arka planı ele, en kalabalık renk kümesinin ortalamasını al
+function dominantColor(im, band){
+  const W=140, H=Math.round(W*im.height/im.width);
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const x=c.getContext('2d'); x.drawImage(im,0,0,W,H);
+  const all=x.getImageData(0,0,W,H).data;
+  const px=(i,j)=>{const k=(j*W+i)*4;return [all[k],all[k+1],all[k+2]];};
+  const border=[]; for(let i=0;i<W;i+=3){ border.push(px(i,1)); border.push(px(i,Math.min(H-1,Math.floor(H*0.15)))); }
+  for(let j=0;j<H*0.5;j+=3){ border.push(px(1,j)); border.push(px(W-2,j)); }
+  const med=k=>border.map(p=>p[k]).sort((a,b)=>a-b)[border.length>>1];
+  const bgc=[med(0),med(1),med(2)];
+  const y0=Math.floor(H*band[0]), y1=Math.floor(H*band[1]);
+  const bins=new Map();
+  for(let j=y0;j<y1;j++) for(let i=Math.floor(W*0.22);i<Math.floor(W*0.78);i++){
+    const p=px(i,j);
+    if(Math.abs(p[0]-bgc[0])+Math.abs(p[1]-bgc[1])+Math.abs(p[2]-bgc[2])<36) continue;
+    const key=(p[0]>>5)*64+(p[1]>>5)*8+(p[2]>>5);
+    const b=bins.get(key)||{n:0,r:0,g:0,b:0}; b.n++; b.r+=p[0]; b.g+=p[1]; b.b+=p[2]; bins.set(key,b);
   }
-  await autoColors();
-  renderAll();
-  toast(files.length+' görsel eklendi');
+  let top=null; for(const b of bins.values()) if(!top||b.n>top.n) top=b;
+  if(!top) return '#888888';
+  return rgb2hex(top.r/top.n, top.g/top.n, top.b/top.n);
 }
-async function addSwatches(files){
-  files = [...files].filter(f => f.type.startsWith('image/'));
-  for(const f of files){
-    const url = await readImage(f, 900);
-    let target = items.find(it => !it.swatch);
-    if(!target){ target = newItem(); items.push(target); isSample=false; }
-    target.swatch = url;
+async function detectColor(m){
+  if(!m.img) return;
+  const im = await loadImg(m.img); if(!im) return;
+  m.color = dominantColor(im, BANDS[F.product]||BANDS.ust);
+  if(!m.manual) m.name = nameColor(m.color);
+}
+
+// ---------- Kumaş içeriği okuma (OCR) ----------
+const FIBERS = [
+  [/^(cotton|coton|pamuk|baumwolle|algod|cotone|katoen|bawe|bavln)/,'PAMUK'],
+  [/^(organic ?cotton|organik ?pamuk)/,'ORGANİK PAMUK'],
+  [/^(polyester|poliester|polyest|poliest|pes$)/,'POLYESTER'],
+  [/^(polyamid|poliamid|polyamide|nylon|naylon|nailon|pa$)/,'POLİAMİD'],
+  [/^(lycra|likra)/,'LİKRA'],
+  [/^(elastan|elastane|spandex|elasthan|elastam|ea$)/,'ELASTAN'],
+  [/^(viscose|viskon|viskoz|viscosa|viskose|vi$)/,'VİSKON'],
+  [/^(modal)/,'MODAL'],
+  [/^(lyocell|liyosel|tencel)/,'LİYOSEL'],
+  [/^(wool|yun|yün|laine|wolle|lana|wo$)/,'YÜN'],
+  [/^(cashmere|kasmir|kaşmir|cachemire)/,'KAŞMİR'],
+  [/^(linen|keten|lin$|leinen|lino)/,'KETEN'],
+  [/^(acrylic|akrilik|acrylique|acryl|acrilico|pc$)/,'AKRİLİK'],
+  [/^(silk|ipek|soie|seide|seta)/,'İPEK'],
+  [/^(polypropylene|polipropilen)/,'POLİPROPİLEN'],
+  [/^(acetate|asetat)/,'ASETAT'],
+  [/^(alpaca|alpaka)/,'ALPAKA'],
+  [/^(mohair|tiftik)/,'TİFTİK']
+];
+const fold = s => s.toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ç/g,'c').replace(/ö/g,'o').replace(/ü/g,'u');
+function fiberOf(word){
+  const w = fold(word).replace(/[^a-z ]/g,'').trim();
+  for(const [re,name] of FIBERS) if(re.test(w) || re.test(w.replace(/ /g,''))) return name;
+  return null;
+}
+function parseComposition(text){
+  const t = text.replace(/[|]/g,' ').replace(/(\d)\s*[oO°]\s*\/?\s*[oO°]/g,'$1%');
+  const W='([A-Za-zÇĞİÖŞÜçğıöşüÉéÈèÀàÄäÑñ]+(?:\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+)?)';
+  const P='(\\d{1,3}(?:[.,]\\d)?)';
+  // İki yazım biçimini ayrı ayrı dene: "46% POLYESTER" / "%46 POLYESTER" ve "POLYESTER 46%"
+  const parsers=[
+    [[new RegExp(P+'\\s*%\\s*'+W,'g'), new RegExp('%\\s*'+P+'\\s*'+W,'g')], m=>[m[1],m[2]]],
+    [[new RegExp(W+'\\s*[:\\-]?\\s*'+P+'\\s*%','g')], m=>[m[2], m[1].split(/\s+/).pop()]]
+  ];
+  let best={lines:[],sum:0};
+  for(const [res,pick] of parsers){
+    const found=[], seen=new Set();
+    for(const re of res){ let m; while((m=re.exec(t))){
+      const [pct,word]=pick(m); const n=parseFloat(String(pct).replace(',','.'));
+      const f=fiberOf(word); if(!(n>0&&n<=100)||!f||seen.has(f)) continue; seen.add(f); found.push([n,f,m.index]);
+    } }
+    found.sort((a,b)=>a[2]-b[2]);
+    // Etiketler aynı içeriği birden fazla dilde tekrar eder; ilk tam set yeterli
+    const lines=[]; let sum=0;
+    for(const [n,f] of found){ if(sum>=100) break; lines.push(`%${n} ${f}`); sum+=n; }
+    if(Math.abs(sum-100) < Math.abs(best.sum-100) || (!best.lines.length && lines.length)) best={lines,sum};
   }
-  renderAll();
-  if(files.length) toast(files.length+' kumaş görseli atandı');
+  return best;
+}
+function compCheck(){
+  const nums=[...composition.matchAll(/%\s*(\d+(?:[.,]\d+)?)/g)].map(m=>parseFloat(m[1].replace(',','.')));
+  const s=nums.reduce((a,b)=>a+b,0);
+  const el=$('#compCheck');
+  if(!nums.length){ el.textContent=''; return; }
+  el.textContent = Math.round(s)===100 ? 'Toplam %100' : `Toplam %${Math.round(s*10)/10}: kontrol edin`;
+  el.className = 'status' + (Math.round(s)===100?'':' err');
+}
+async function runOCR(canvas){
+  const st=$('#ocrStatus'); st.className='status';
+  if(!window.Tesseract){ st.textContent='Metin okuma kütüphanesi yüklenemedi (internet bağlantısı gerekli). İçeriği elle yazabilirsiniz.'; st.className='status err'; return; }
+  // Okumayı kolaylaştırmak için büyüt ve griye çevir
+  const k=Math.max(1, 1800/Math.max(canvas.width,canvas.height));
+  const c=document.createElement('canvas'); c.width=canvas.width*k; c.height=canvas.height*k;
+  const x=c.getContext('2d'); x.filter='grayscale(1) contrast(1.4)'; x.drawImage(canvas,0,0,c.width,c.height);
+  st.textContent='Etiket okunuyor…';
+  try{
+    const r = await Tesseract.recognize(c, 'tur+eng', {logger:m=>{ if(m.status==='recognizing text') st.textContent=`Etiket okunuyor… %${Math.round(m.progress*100)}`; }});
+    const text = r.data.text || '';
+    const {lines} = parseComposition(text);
+    if(lines.length){
+      composition = lines.join('\n'); $('#composition').value = composition;
+      st.textContent = `Okundu: ${lines.length} bileşen. Gerekirse düzeltin.`;
+    } else {
+      st.textContent = 'Yüzde ve kumaş adı bulunamadı. Okunan metin aşağıya kondu; düzenleyin.';
+      st.className='status err';
+      composition = upTR(text.trim()).split('\n').filter(Boolean).slice(0,6).join('\n'); $('#composition').value = composition;
+    }
+    compCheck(); render();
+  }catch(e){ st.textContent='Etiket okunamadı: '+e.message; st.className='status err'; }
 }
 
-// ---------- Sayfa üretimi ----------
-function perPage(){
-  const c = +F.cols, land = F.orient==='landscape';
-  if(F.layout==='lookbook') return c;
-  if(F.layout==='teknik') return 2;
-  if(F.layout==='detay') return 1;
-  if(F.layout==='renk') return Math.min(c,4);
-  return c * rowsFor();
-}
-function rowsFor(){ const c=+F.cols, land=F.orient==='landscape'; return land ? (c<=3?1:2) : (c<=2?2:c===3?2:3); }
-
-function swatchStyle(it){
-  return it.swatch ? `background-image:url(${it.swatch})` : `background-color:${it.color}`;
-}
-function photo(it, extra=''){
-  if(!it.img) return `<div class="photo empty ${extra}">Görsel<br>sürükleyin</div>`;
-  return `<div class="photo ${F.fit==='contain'?'contain':''} ${extra}" style="background-image:url(${it.img})"></div>`;
-}
-function head(){
-  const b = F.logo ? `<img class="s-logo" src="${F.logo}" alt="">` : `<div class="s-brand">${esc(F.brand)}</div>`;
-  return `<div class="s-head">${b}${F.subtitle?`<div class="s-rule"></div><div class="s-sub">${esc(F.subtitle)}</div>`:''}</div>`;
-}
-function foot(p, n){
-  const left = esc(F.footer || (F.product + ' · ' + items.length + ' model'));
-  return `<div class="s-foot"><span>${left}</span><span>${F.pageNo?`${p} / ${n}`:''}</span></div>`;
-}
-const handCls = () => F.handwrite ? 'hand' : '';
-
-function lookbook(chunk){
-  const cols = +F.cols;
-  let h = `<div class="lb-body" style="--cols:${cols}">`;
-  for(let i=0;i<cols;i++){
-    const it = chunk[i];
-    if(!it){ h += `<div class="lb-col"><div></div><div class="lb-label">&nbsp;</div><div class="lb-sw"></div></div>`; continue; }
-    h += `<div class="lb-col">${photo(it)}
-      <div class="lb-label ${handCls()}"><span>${esc(it.code)}</span><span>${esc(it.ref)}</span>
-        ${F.showPrice && (it.price||it.note) ? `<span class="price">${esc(it.price)}${it.note?` <span style="font-size:13px">${esc(it.note)}</span>`:''}</span>`:''}</div>
-      <div class="lb-sw"><div class="lb-swwrap"><div class="swatch" style="${swatchStyle(it)}"></div>
-        <div class="cap">${F.showFabricName?esc(it.fabric):''}</div></div></div>
-    </div>`;
+// ---------- Yerleşim hesabı ----------
+// n kutuyu (en/boy oranı ar, altında capH yazı payı) W×H alana en büyük boyutta yerleştirir
+function fitGrid(n, W, H, ar, capH, gx, gy){
+  let best={c:1,r:1,w:0,h:0};
+  for(let c=1;c<=Math.max(1,n);c++){
+    const r=Math.ceil(n/c);
+    const w=Math.min((W-(c-1)*gx)/c, ((H-(r-1)*gy)/r - capH)*ar);
+    if(w>best.w) best={c,r,w,h:w/ar};
   }
-  return h + '</div>';
+  return best;
 }
-function teknik(chunk){
-  const sizes = it => it.sizes || (PRODUCTS[F.product]||{}).sizes || '';
-  let h = '<div class="tk-body">';
-  for(let i=0;i<2;i++){
-    const it = chunk[i];
-    if(!it){ h += '<div></div>'; continue; }
-    h += `<div class="tk-item">${photo(it)}
-      <div class="tk-right">
-        <div class="tk-title">${esc(it.code)} ${esc(it.ref)}</div>
-        <table class="tk-table">
-          <tr><th>Ürün</th><td>${esc(F.product)}</td></tr>
-          <tr><th>Model kodu</th><td class="${handCls()}">${esc(it.code)} ${esc(it.ref)}</td></tr>
-          <tr><th>Kumaş</th><td>${esc(it.fabric)||'—'}</td></tr>
-          <tr><th>Renk</th><td>${it.swatch?'Kumaş numunesi':esc(it.color.toUpperCase())}</td></tr>
-          <tr><th>Beden</th><td>${esc(sizes(it))||'—'}</td></tr>
-          ${F.showPrice?`<tr><th>Fiyat</th><td class="price" style="font-size:15px">${esc(it.price)||'—'}</td></tr>`:''}
-        </table>
-        <div class="tk-sw"><div class="swatch" style="${swatchStyle(it)}"></div><div class="tk-note">${esc(it.note)}</div></div>
-      </div></div>`;
-  }
-  return h + '</div>';
+const box = (x,y,w,h,inner,cls='',style='') => `<div class="abs ${cls}" style="left:${x}mm;top:${y}mm;width:${w}mm;height:${h}mm;${style}">${inner||''}</div>`;
+function imgBox(x,y,w,h,url,{contain=false,shadow=false,label='Görsel',fs=3}={}){
+  if(!url) return box(x,y,w,h,label,'ph-box',`font-size:${fs}mm`);
+  return box(x,y,w,h,'',`img ${contain?'contain':''} ${shadow?'shadow':''}`,`background-image:url(${url})`);
 }
-function grid(chunk){
-  const cols=+F.cols, rows=rowsFor();
-  let h = `<div class="gr-body" style="--cols:${cols};--rows:${rows}">`;
-  for(let i=0;i<cols*rows;i++){
-    const it = chunk[i];
-    if(!it){ h += '<div></div>'; continue; }
-    h += `<div class="gr-cell">${photo(it)}
-      <div class="gr-cap ${handCls()}"><span class="swatch" style="${swatchStyle(it)}"></span><span>${esc(it.code)}</span><span>${esc(it.ref)}</span>
-      ${F.showPrice&&it.price?`<span class="price">${esc(it.price)}</span>`:''}</div></div>`;
+function capText(x,y,w,d,fs,color,bold=false){
+  if(!d.t1 && !d.t2) return '';
+  return box(x,y,w,fs*2.8, `${esc(d.t1)}${d.t2?'<br>'+esc(d.t2):''}`,'cap',`font-size:${fs}mm;color:${color};font-weight:${bold?600:400};letter-spacing:.03em`);
+}
+function lum(hex){ const [r,g,b]=hex2rgb(hex); return (.299*r+.587*g+.114*b)/255; }
+
+function layoutRenk(W,H,k){
+  const m=12*k, gap=7*k, ink=F.accent;
+  const iw=W-2*m, ih=H-2*m;
+  let out='';
+  // Sol panel: marka, kumaş, içerik, sol detaylar
+  const Lw=Math.min(0.17*W, 72*k);
+  let y=m;
+  if(F.logo){ out+=box(m,y,Lw,16*k,'','img',`background-image:url(${F.logo});background-size:contain;background-position:left center`); y+=17*k; }
+  else { out+=box(m,y,Lw,12*k,esc(F.brand),'',`font-size:${10.5*k}mm;font-weight:700;color:${ink};line-height:1;white-space:nowrap;letter-spacing:-.01em`); y+=12.5*k; }
+  if(F.subtitle){ out+=box(m,y,Lw*0.85,6*k,esc(F.subtitle),'',`font-size:${4.4*k}mm;letter-spacing:.38em;color:${ink};text-align:center;line-height:1`); y+=7.5*k; }
+  out+=box(m,y,Lw*0.55,0.5*k,'','',`background:${ink}`); y+=7*k;
+
+  const left=[], right=[];
+  const n=details.length;
+  details.forEach((d,i)=>{ const s=d.side==='auto' ? (i < Math.ceil(n/2) - (fabric||composition?1:0) ? 'left':'right') : d.side; (s==='left'?left:right).push(d); });
+
+  const compLines = composition.trim() ? composition.trim().split('\n') : [];
+  const fs=3.6*k;
+  const compH = compLines.length ? (6*k + compLines.length*fs*1.45) : 0;
+  const leftItems = left.length + (fabric?1:0);
+  const availL = m+ih - y - compH - (compLines.length?3*k:0);
+  // sol sütun: kutular dikey sığacak şekilde
+  const capL = 9*k, arL = 1.15;
+  let bh = leftItems ? Math.min(Lw/arL, (availL - (leftItems)*capL - (leftItems-1)*3*k)/leftItems) : 0;
+  bh=Math.max(bh,8*k); const bw=Math.min(Lw, bh*arL);
+  if(fabric){
+    out+=imgBox(m,y,bw,bh,fabric,{shadow:true});
+    y+=bh+3*k;
   }
-  return h + '</div>';
+  if(compLines.length){
+    out+=box(m,y,Lw,6*k,'KUMAŞ İÇERİĞİ','',`font-size:${4.4*k}mm;font-weight:700;color:${ink};letter-spacing:.02em`);
+    out+=box(m,y+6*k,Lw,compLines.length*fs*1.45, compLines.map(esc).join('<br>'),'',`font-size:${fs}mm;line-height:1.45;font-weight:500;color:${ink};letter-spacing:.03em;white-space:nowrap`);
+    y+=compH+(fabric?capL-3*k:3*k);
+  } else if(fabric) y+=capL-3*k;
+  for(const d of left){
+    out+=imgBox(m,y,bw,bh,d.img,{shadow:true,fs:2.6*k});
+    out+=capText(m,y+bh+1.5*k,bw,d,3.4*k,ink,true);
+    y+=bh+capL+3*k;
+  }
+
+  // Sağ panel: kalan detaylar
+  let Rw=0, rhtml='';
+  if(right.length){
+    const capR=10*k;
+    const g=fitGrid(right.length, 0.30*iw, ih, 1.25, capR, 5*k, 5*k);
+    Rw=g.c*g.w+(g.c-1)*5*k;
+    const totalH=g.r*(g.h+capR)+(g.r-1)*5*k;
+    const x0=W-m-Rw, y0=m+(ih-totalH)/2;
+    right.forEach((d,i)=>{
+      const cx=x0+(i%g.c)*(g.w+5*k), cy=y0+Math.floor(i/g.c)*(g.h+capR+5*k);
+      rhtml+=imgBox(cx,cy,g.w,g.h,d.img,{shadow:true,fs:2.6*k});
+      rhtml+=capText(cx,cy+g.h+1.8*k,g.w,d,3.4*k,ink,true);
+    });
+  }
+  out+=rhtml;
+
+  // Orta: modeller ve renk bantları
+  const cx0=m+Lw+gap, cw=W-m-(Rw?Rw+gap:0)-cx0;
+  if(models.length){
+    const ar = models.reduce((s,mm)=>s+(mm.ar||0.42),0)/models.length;
+    const barH=9*k, capM=barH+5*k;
+    const g=fitGrid(models.length, cw, ih, ar, capM, 3*k, 6*k);
+    const totalW=g.c*g.w+(g.c-1)*3*k, totalH=g.r*(g.h+capM)+(g.r-1)*6*k;
+    const x0=cx0+(cw-totalW)/2, y0=m+(ih-totalH)/2;
+    models.forEach((md,i)=>{
+      const x=x0+(i%g.c)*(g.w+3*k), yy=y0+Math.floor(i/g.c)*(g.h+capM+6*k);
+      out+=imgBox(x,yy,g.w,g.h,md.img,{contain:true,label:'Model',fs:3*k});
+      if(md.name){
+        const bwid=Math.min(g.w*0.9, 70*k), fz=Math.min(5*k, bwid/Math.max(4,md.name.length)*1.45);
+        out+=box(x+(g.w-bwid)/2, yy+g.h+4*k, bwid, barH, esc(md.name),'bar',`background:${md.color};color:${lum(md.color)>0.6?'#1a1a1a':'#ffffff'};font-size:${fz}mm`);
+      }
+    });
+  }
+  return out;
 }
 
-function cap2(d){ return `<div class="cap2"><b>${esc(d.t1)}</b>${esc(d.t2)}</div>`; }
-function detay(chunk){
-  const it = chunk[0] || newItem();
-  const title = F.modelName || [it.code,it.ref].filter(Boolean).join(' ');
-  const ds = details.slice(0,9);
-  const rows = Math.max(1, Math.ceil(ds.length/3));
-  return `<div class="dt-wrap"><div class="dt-left">
-      <div><div class="dt-title">${esc(title)}</div>${it.colorName?`<div class="dt-color">${esc(it.colorName)}</div>`:''}</div>
-      ${photo(it)}</div>
-    <div class="dt-grid" style="grid-template-rows:repeat(${rows},1fr)">
-      ${ds.length ? ds.map(d=>`<div class="dt-cell">${d.img?`<div class="photo" style="background-image:url(${d.img})"></div>`:'<div class="photo empty">Detay</div>'}${cap2(d)}</div>`).join('')
-        : '<div class="dt-cell" style="grid-column:1/-1"><div class="photo empty">Detay görsellerini sol panelden ekleyin</div></div>'}
-    </div></div>`;
-}
-function lum(hex){ const n=parseInt((hex||'#888').slice(1),16); return (.299*(n>>16)+.587*((n>>8)&255)+.114*(n&255))/255; }
-function renk(chunk){
-  const cols = Math.max(1, Math.min(+F.cols, 4));
-  const box = (d, capHtml) => d ? `<div class="rk-box" style="${d.img?`background-image:url(${d.img})`:''}"></div>${capHtml}` : '';
-  const [d0,d1,d2,d3,d4] = details;
-  const brand = F.logo ? `<img src="${F.logo}" alt="">` : esc(F.brand);
-  let mid = '';
-  for(let i=0;i<cols;i++){
-    const it = chunk[i];
-    if(!it){ mid += '<div></div>'; continue; }
-    const name = it.colorName || it.ref;
-    mid += `<div class="rk-model">${photo(it)}${name?`<div class="rk-bar" style="background:${it.swatch?'#1f2124':it.color};color:${!it.swatch&&lum(it.color)>.6?'#1b1b1b':'#ffffff'}">${esc(name)}</div>`:'<div></div>'}</div>`;
+function layoutDetay(W,H,k){
+  const m=12*k, ink=F.accent;
+  const iw=W-2*m, ih=H-2*m;
+  let out='';
+  const hero=models[0];
+  // Başlık
+  const title = F.modelName || F.brand;
+  out+=box(m,m,0.45*W,13*k,esc(title),'',`font-size:${12*k}mm;font-weight:300;letter-spacing:.04em;color:${ink};line-height:1;white-space:nowrap`);
+  out+=box(m,m+15.5*k,26*k,0.45*k,'','',`background:${ink}`);
+  let ty=m+15.5*k;
+  if(hero && hero.name){
+    out+=box(m,m+22*k,0.4*W,7*k,esc(hero.name),'',`font-size:${5.6*k}mm;letter-spacing:.3em;color:${ink};line-height:1;white-space:nowrap`);
+    out+=box(m,m+30.5*k,Math.min(0.4*W,(hero.name.length*5.6*1.0+8)*k),0.45*k,'','',`background:${ink}`);
+    ty=m+30.5*k;
   }
-  return `<div class="rk-wrap">
-    <div class="rk-side">
-      <div><div class="rk-brand">${brand}</div>${F.subtitle?`<div class="rk-sub">${esc(F.subtitle)}</div>`:''}<div class="rk-line"></div></div>
-      ${box(d0, F.composition?`<div><div class="rk-h">Kumaş içeriği</div><div class="rk-comp">${esc(F.composition)}</div></div>`:(d0?`<div class="rk-cap">${esc(d0.t1)}<br>${esc(d0.t2)}</div>`:''))}
-      ${box(d1, d1?`<div class="rk-cap">${esc(d1.t1)}<br>${esc(d1.t2)}</div>`:'')}
-      ${box(d2, d2?`<div class="rk-cap">${esc(d2.t1)}<br>${esc(d2.t2)}</div>`:'')}
-    </div>
-    <div class="rk-mid" style="--cols:${cols}">${mid}</div>
-    <div class="rk-side rk-right">
-      ${box(d3, d3?`<div class="rk-cap">${esc(d3.t1)}<br>${esc(d3.t2)}</div>`:'')}
-      ${box(d4, d4?`<div class="rk-cap">${esc(d4.t1)}<br>${esc(d4.t2)}</div>`:'')}
-    </div></div>`;
+  // Ana görsel
+  const heroTop=ty+5*k, heroH=m+ih-heroTop;
+  const har=hero?.ar||0.6;
+  const Hw=Math.max(0.28*iw, Math.min(0.42*iw, heroH*har));
+  out+=imgBox(m,heroTop,Hw,heroH,hero?.img,{contain:true,label:'Ana model görseli',fs:3.5*k});
+
+  // Detay ızgarası: diğer modeller + kumaş + detaylar
+  const tiles=[];
+  models.slice(1).forEach(md=>tiles.push({img:md.img, contain:true, t1:md.name, t2:''}));
+  if(fabric) tiles.push({img:fabric, t1:'KUMAŞ', t2:composition.trim().split('\n').join(' · ')});
+  details.forEach(d=>tiles.push({img:d.img, t1:d.t1, t2:d.t2}));
+  const gx0=m+Hw+10*k, gw=W-m-gx0;
+  if(tiles.length){
+    const capH=11*k, gap=5*k;
+    const g=fitGrid(tiles.length, gw, ih, 1.05, capH, gap, 3*k);
+    const totalW=g.c*g.w+(g.c-1)*gap, totalH=g.r*(g.h+capH)+(g.r-1)*3*k;
+    const x0=gx0+(gw-totalW)/2, y0=m+(ih-totalH)/2;
+    const fs=Math.min(3.8*k, Math.max(2.2*k, g.w/22));
+    tiles.forEach((t,i)=>{
+      const x=x0+(i%g.c)*(g.w+gap), y=y0+Math.floor(i/g.c)*(g.h+capH+3*k);
+      out+=imgBox(x,y,g.w,g.h,t.img,{contain:t.contain,label:'Detay',fs:2.6*k});
+      out+=capText(x,y+g.h+1.8*k,g.w,t,fs,ink);
+    });
+  }
+  return out;
 }
 
-function renderPages(){
-  const per = perPage();
-  const list = items.length ? items : [];
-  const chunks = [];
-  for(let i=0;i<Math.max(1,list.length);i+=per) chunks.push(list.slice(i,i+per));
-  const body = {lookbook, teknik, grid, detay, renk}[F.layout];
-  const ownHead = F.layout==='detay' || F.layout==='renk';
-  $('#pages').innerHTML = chunks.map((ch,i)=>
-    `<section class="sheet bg-${F.bg} ${F.orient==='landscape'?'landscape':''}">${ownHead?'':head()}${body(ch)}${foot(i+1,chunks.length)}</section>`
-  ).join('');
-  $('#pageStyle').textContent = `@page{size:A4 ${F.orient};margin:0}`;
-  $('#info').textContent = `${items.length} ürün · ${chunks.length} sayfa${isSample?' · örnek veri, görsel yükleyince değişir':''}`;
+// ---------- Çizim ----------
+let curScale=1;
+function sheetSize(){ const [w,h]=PAPER[F.paper]||PAPER.A3; return {W:w,H:h,k:w/420}; }
+function render(){
+  const {W,H,k}=sheetSize();
+  const html = F.layout==='detay' ? layoutDetay(W,H,k) : layoutRenk(W,H,k);
+  const bg = F.bg==='white' ? '#ffffff' : 'linear-gradient(180deg,#f1f1f0 0%,#ebebea 70%,#e2e2e1 100%)';
+  $('#stage').innerHTML = `<div class="sheet" id="sheet" style="width:${W}mm;height:${H}mm;background:${bg}">${html}</div>`;
+  $('#pageStyle').textContent = `@page{size:${F.paper} landscape;margin:0}`;
+  fitStage();
+  $('#info').textContent = `${F.paper} yatay · ${models.length} model · ${details.length} detay${(sampleModels||sampleDetails)?' · örnek düzen, görsel yükleyince dolar':''}`;
 }
+function fitStage(){
+  const sh=$('#sheet'); if(!sh) return;
+  const pw=sh.offsetWidth, ph=sh.offsetHeight;
+  const avail=$('#main').clientWidth-48;
+  curScale=Math.min(1, avail/pw);
+  sh.style.transform=`scale(${curScale})`;
+  $('#stage').style.width=pw*curScale+'px'; $('#stage').style.height=ph*curScale+'px';
+}
+window.addEventListener('resize', fitStage);
 
-function renderItems(){
-  $('#count').textContent = items.length ? `(${items.length})` : '';
-  $('#items').innerHTML = items.map((it,i)=>`
-    <div class="item" data-id="${it.id}">
-      <div>
-        <div class="thumb" data-act="img" title="Görseli değiştir" style="${it.img?`background-image:url(${it.img})`:''}">${it.img?'':'Görsel<br>ekle'}</div>
-        <div class="row" style="gap:3px;margin-top:5px">
-          <button class="btn sm" data-act="up" ${i===0?'disabled':''} aria-label="Yukarı">↑</button>
-          <button class="btn sm" data-act="down" ${i===items.length-1?'disabled':''} aria-label="Aşağı">↓</button>
-          <button class="btn sm" data-act="del" aria-label="Sil">✕</button>
+// ---------- Panel listeleri ----------
+function renderModels(){
+  $('#mcount').textContent = models.length?`(${models.length})`:'';
+  $('#mlist').innerHTML = models.map((md,i)=>`
+    <div class="item" data-id="${md.id}">
+      <div class="thumb" style="${md.img?`background-image:url(${md.img})`:''}">${md.img?'':'Örnek'}</div>
+      <div class="fields">
+        <div class="row" style="gap:5px;flex-wrap:nowrap">
+          <input type="text" id="mn-${md.id}" data-k="name" value="${esc(md.name)}" placeholder="Renk adı (boş = bant yok)">
+          <input type="color" id="mc-${md.id}" data-k="color" value="${md.color}" title="Bant rengi">
         </div>
-      </div>
-      <div class="grid2">
-        <input type="text" id="code-${it.id}" data-k="code" value="${esc(it.code)}" placeholder="Kod (K:7)">
-        <input type="text" id="ref-${it.id}" data-k="ref" value="${esc(it.ref)}" placeholder="Renk/Seri (RFH)">
-        <input type="text" id="fabric-${it.id}" data-k="fabric" value="${esc(it.fabric)}" placeholder="Kumaş adı">
-        <input type="text" id="price-${it.id}" data-k="price" value="${esc(it.price)}" placeholder="Fiyat">
-        <input type="text" id="note-${it.id}" data-k="note" value="${esc(it.note)}" placeholder="Not">
-        <input type="text" id="sizes-${it.id}" data-k="sizes" value="${esc(it.sizes)}" placeholder="Beden">
-        <input type="text" class="full" id="colorName-${it.id}" data-k="colorName" value="${esc(it.colorName)}" placeholder="Renk adı (SİYAH, NAVY, STONE…)">
-        <div class="swrow">
-          <div class="chip" data-act="sw" title="Kumaş görseli yükle" style="${swatchStyle(it)}"></div>
-          <input type="color" id="color-${it.id}" data-k="color" value="${/^#[0-9a-f]{6}$/i.test(it.color)?it.color:'#8a8a8a'}" title="Renk seç">
-          ${it.swatch?'<button class="btn sm" data-act="swdel">Kumaşı kaldır</button>':`<span class="muted">${it.autoColor&&it.img?'Renk fotoğraftan':'Kumaş: tıkla'}</span>`}
+        <div class="row" style="gap:4px">
+          <span class="tag ${md.manual?'':'auto'}">${md.img?(md.manual?'Elle düzenlendi':'Otomatik: '+esc(nameColor(md.color))):'Örnek'}</span>
+          ${md.img?'<button class="btn sm" data-act="auto" type="button">Yeniden algıla</button>':''}
+        </div>
+        <div class="row" style="gap:3px">
+          <button class="btn sm" data-act="up" ${i===0?'disabled':''} type="button" aria-label="Yukarı taşı">↑</button>
+          <button class="btn sm" data-act="down" ${i===models.length-1?'disabled':''} type="button" aria-label="Aşağı taşı">↓</button>
+          <button class="btn sm" data-act="del" type="button" aria-label="Sil">Sil</button>
         </div>
       </div>
     </div>`).join('');
 }
 function renderDetails(){
-  $('#dcount').textContent = details.length ? `(${details.length})` : '';
+  $('#dcount').textContent = details.length?`(${details.length})`:'';
+  const showSide = F.layout==='renk';
   $('#dlist').innerHTML = details.map((d,i)=>`
-    <div class="item" data-did="${d.id}">
-      <div class="thumb" style="height:64px;${d.img?`background-image:url(${d.img})`:''}"></div>
-      <div class="grid2">
-        <input type="text" class="full" id="t1-${d.id}" data-dk="t1" value="${esc(d.t1)}" placeholder="Başlık (örn. TRİKO BANT YAKA)">
-        <input type="text" class="full" id="t2-${d.id}" data-dk="t2" value="${esc(d.t2)}" placeholder="Alt satır (örn. ÖN BEDEN)">
-        <div class="row full" style="gap:3px">
-          <button class="btn sm" data-dact="up" ${i===0?'disabled':''} aria-label="Yukarı">↑</button>
-          <button class="btn sm" data-dact="down" ${i===details.length-1?'disabled':''} aria-label="Aşağı">↓</button>
-          <button class="btn sm" data-dact="del" aria-label="Sil">✕</button>
+    <div class="item" data-id="${d.id}">
+      <div class="thumb sq" style="${d.img?`background-image:url(${d.img})`:''}">${d.img?'':'Örnek'}</div>
+      <div class="fields">
+        <input type="text" id="d1-${d.id}" data-k="t1" value="${esc(d.t1)}" placeholder="Başlık (örn. TRİKO BANT YAKA)">
+        <input type="text" id="d2-${d.id}" data-k="t2" value="${esc(d.t2)}" placeholder="Alt satır (örn. ÖN BEDEN)">
+        <div class="row" style="gap:3px">
+          ${showSide?`<select id="ds-${d.id}" data-k="side" style="width:auto"><option value="auto" ${d.side==='auto'?'selected':''}>Yer: otomatik</option><option value="left" ${d.side==='left'?'selected':''}>Sol</option><option value="right" ${d.side==='right'?'selected':''}>Sağ</option></select>`:''}
+          <button class="btn sm" data-act="up" ${i===0?'disabled':''} type="button" aria-label="Yukarı taşı">↑</button>
+          <button class="btn sm" data-act="down" ${i===details.length-1?'disabled':''} type="button" aria-label="Aşağı taşı">↓</button>
+          <button class="btn sm" data-act="del" type="button" aria-label="Sil">Sil</button>
         </div>
       </div>
     </div>`).join('');
 }
-function renderAll(){ renderItems(); renderDetails(); renderPages(); }
-async function addDetails(files){
-  files=[...files].filter(f=>f.type.startsWith('image/'));
-  for(const f of files){ details.push(newDetail({img: await readImage(f, 1200), t1: f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' ').toLocaleUpperCase('tr-TR').slice(0,40)})); }
-  if(files.length && !['detay','renk'].includes(F.layout)) toast('Detaylar, "Detay Föyü" veya "Renk Seçenekleri" şablonunda görünür');
-  renderAll();
+function renderFabric(){
+  $('#fabricRow').innerHTML = fabric ? `<span class="muted">Kumaş dokusu yüklendi</span><button class="btn sm" id="fabDel" type="button">Kaldır</button>` : '';
+  const lp=$('#labelPreview'); if(labelImg){ lp.src=labelImg; lp.hidden=false; } else lp.hidden=true;
 }
+function renderAll(){ renderModels(); renderDetails(); renderFabric(); render(); }
 
-// ---------- Ürün listesi olayları ----------
-let pickTarget = null;
-$('#items').addEventListener('input', e => {
-  const k = e.target.dataset.k; if(!k) return;
-  const it = items.find(x => x.id === e.target.closest('.item').dataset.id);
-  it[k] = e.target.value; isSample = false;
-  if(k==='color'){ it.autoColor=false; it.swatch=null; const ch=e.target.closest('.item').querySelector('.chip'); ch.style.cssText=swatchStyle(it); }
-  clearTimeout(renderPages.t); renderPages.t = setTimeout(renderPages, 120);
-});
-$('#items').addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if(!b) return;
-  const idx = items.findIndex(x => x.id === b.closest('.item').dataset.id), it = items[idx];
-  const act = b.dataset.act;
-  if(act==='up' && idx>0) [items[idx-1],items[idx]]=[items[idx],items[idx-1]];
-  else if(act==='down' && idx<items.length-1) [items[idx+1],items[idx]]=[items[idx],items[idx+1]];
-  else if(act==='del') items.splice(idx,1);
-  else if(act==='swdel'){ it.swatch=null; }
-  else if(act==='img' || act==='sw'){ pickTarget={it, kind:act}; $('#fileOne').click(); return; }
-  isSample=false; renderAll();
-});
-$('#fileOne').addEventListener('change', async e => {
-  const f = e.target.files[0]; e.target.value=''; if(!f || !pickTarget) return;
-  const {it, kind} = pickTarget; isSample=false;
-  if(kind==='img'){ it.img = await readImage(f); it.autoColor = it.autoColor || !it.swatch; await autoColors([it]); }
-  else it.swatch = await readImage(f, 900);
-  renderAll();
-});
+function wireList(listSel, arr, onChange){
+  $(listSel).addEventListener('input', e => {
+    const k=e.target.dataset.k; if(!k) return;
+    const it=arr().find(x=>x.id===e.target.closest('.item').dataset.id);
+    it[k]=e.target.value;
+    if(k==='name'){ it.name=upTR(it.name); it.manual=true; }
+    if(onChange) onChange(it,k,e.target);
+    clearTimeout(render.t); render.t=setTimeout(render,120);
+  });
+  $(listSel).addEventListener('change', e => { if(e.target.dataset.k) renderAll(); });
+  $(listSel).addEventListener('click', async e => {
+    const b=e.target.closest('[data-act]'); if(!b) return;
+    const a=arr(), i=a.findIndex(x=>x.id===b.closest('.item').dataset.id), act=b.dataset.act;
+    if(act==='up'&&i>0)[a[i-1],a[i]]=[a[i],a[i-1]];
+    else if(act==='down'&&i<a.length-1)[a[i+1],a[i]]=[a[i],a[i+1]];
+    else if(act==='del') a.splice(i,1);
+    else if(act==='auto'){ a[i].manual=false; await detectColor(a[i]); }
+    renderAll();
+  });
+}
+wireList('#mlist', ()=>models, (it,k,el)=>{ if(k==='name') el.value=it.name; });
+wireList('#dlist', ()=>details);
 
-$('#dlist').addEventListener('input', e => {
-  const k=e.target.dataset.dk; if(!k) return;
-  details.find(x=>x.id===e.target.closest('.item').dataset.did)[k]=e.target.value;
-  clearTimeout(renderPages.t); renderPages.t=setTimeout(renderPages,120);
-});
-$('#dlist').addEventListener('click', e => {
-  const b=e.target.closest('[data-dact]'); if(!b) return;
-  const i=details.findIndex(x=>x.id===b.closest('.item').dataset.did), a=b.dataset.dact;
-  if(a==='up'&&i>0)[details[i-1],details[i]]=[details[i],details[i-1]];
-  else if(a==='down'&&i<details.length-1)[details[i+1],details[i]]=[details[i],details[i+1]];
-  else if(a==='del') details.splice(i,1);
-  renderAll();
-});
-
-// ---------- Yükleme alanları ----------
+// ---------- Yükleme ----------
+async function addModels(files){
+  files=[...files].filter(f=>f.type.startsWith('image/')); if(!files.length) return;
+  if(sampleModels){ models=[]; sampleModels=false; }
+  for(const f of files){
+    try{ const r=await readImage(f); const md=newModel({img:r.url, ar:r.w/r.h}); await detectColor(md); models.push(md); }
+    catch(e){ toast(e.message); }
+  }
+  renderAll(); toast(`${files.length} model görseli eklendi, renk adları yazıldı`);
+}
+async function addDetails(files){
+  files=[...files].filter(f=>f.type.startsWith('image/')); if(!files.length) return;
+  if(sampleDetails){ details=[]; sampleDetails=false; }
+  for(const f of files){ const r=await readImage(f,1400); details.push(newDetail({img:r.url, t1:fileTitle(f)})); }
+  renderAll(); toast(`${files.length} detay görseli eklendi`);
+}
+async function setFabric(files){ const f=[...files][0]; if(!f) return; fabric=(await readImage(f,1200)).url; renderAll(); }
+async function setLabel(files){
+  const f=[...files][0]; if(!f) return;
+  const r=await readImage(f,2400); labelImg=r.url; renderFabric(); runOCR(r.canvas);
+}
 function wireDrop(el, input, handler){
   el.addEventListener('click', () => input.click());
   el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); }});
@@ -636,79 +641,72 @@ function wireDrop(el, input, handler){
   el.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); el.classList.remove('hover'); handler(e.dataTransfer.files); });
 }
 wireDrop($('#dropModels'), $('#fileModels'), addModels);
-wireDrop($('#dropSwatches'), $('#fileSwatches'), addSwatches);
 wireDrop($('#dropDetails'), $('#fileDetails'), addDetails);
-$('#main').addEventListener('dragover', e => e.preventDefault());
-$('#main').addEventListener('drop', e => { e.preventDefault(); addModels(e.dataTransfer.files); });
+wireDrop($('#dropFabric'), $('#fileFabric'), setFabric);
+wireDrop($('#dropLabel'), $('#fileLabel'), setLabel);
+$('#main').addEventListener('dragover', e=>e.preventDefault());
+$('#main').addEventListener('drop', e=>{ e.preventDefault(); addModels(e.dataTransfer.files); });
+$('#fabricRow').addEventListener('click', e=>{ if(e.target.id==='fabDel'){ fabric=null; renderAll(); } });
+$('#composition').addEventListener('input', e=>{ composition=e.target.value; compCheck(); clearTimeout(render.t); render.t=setTimeout(render,150); });
 
-// ---------- Format alanları ----------
-const fmtFields = ['modelName','composition','brand','subtitle','product','layout','cols','orient','bg','fit','footer','handwrite','showPrice','showFabricName','pageNo'];
-function syncFmtInputs(){
-  fmtFields.forEach(k => { const el=$('#'+k); if(el.type==='checkbox') el.checked=!!F[k]; else el.value=F[k]; });
-  $('#cols').disabled = F.layout==='teknik' || F.layout==='detay';
+// ---------- Ayarlar ----------
+const fmtIds=['paper','bg','brand','subtitle','modelName','product','accent'];
+function syncInputs(){
+  fmtIds.forEach(k=>$('#'+k).value=F[k]);
+  document.querySelectorAll('input[name=layout]').forEach(r=>r.checked=r.value===F.layout);
+  $('#composition').value=composition; compCheck();
 }
-fmtFields.forEach(k => $('#'+k).addEventListener('input', async e => {
-  const el = e.target;
-  F[k] = el.type==='checkbox' ? el.checked : (k==='cols' ? +el.value : el.value);
-  $('#cols').disabled = F.layout==='teknik' || F.layout==='detay';
-  if(k==='layout' && (F.layout==='detay'||F.layout==='renk') && F.orient!=='landscape'){ F.orient='landscape'; $('#orient').value='landscape'; }
-  if(k==='product') await autoColors();
-  if(k==='product') renderItems();
-  renderPages();
+fmtIds.forEach(k=>$('#'+k).addEventListener('input', async e=>{
+  F[k]=e.target.value;
+  if(k==='product'){ for(const md of models) await detectColor(md); renderModels(); }
+  render();
 }));
-$('#logoBtn').onclick = () => $('#fileLogo').click();
-$('#fileLogo').onchange = async e => { const f=e.target.files[0]; e.target.value=''; if(!f) return; F.logo = await readImage(f, 800); renderPages(); };
-$('#logoDel').onclick = () => { F.logo=null; renderPages(); };
+document.querySelectorAll('input[name=layout]').forEach(r=>r.addEventListener('change',()=>{ F.layout=r.value; renderDetails(); render(); }));
+$('#logoBtn').onclick=()=>$('#fileLogo').click();
+$('#fileLogo').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; F.logo=(await readImage(f,900)).url; render(); };
+$('#logoDel').onclick=()=>{ F.logo=null; render(); };
 
-function download(name, text){
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+function download(name, blob){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000);
 }
-$('#saveFmt').onclick = () => { try{ localStorage.setItem(FMT_KEY, JSON.stringify(F)); toast('Format kaydedildi, bir sonraki açılışta yüklenecek'); }catch(e){ toast('Tarayıcı kaydı engelledi; "Format dışa aktar"ı kullanın'); } };
-$('#expFmt').onclick = () => download(`format-${(F.brand||'form').toLowerCase()}.json`, JSON.stringify({type:'sketch-format', format:F}, null, 2));
-$('#impFmt').onclick = () => $('#fileFmt').click();
-$('#fileFmt').onchange = async e => {
+const slug = s => fold(s||'form').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'form';
+$('#saveFmt').onclick=()=>{ try{ localStorage.setItem(FMT_KEY, JSON.stringify(F)); toast('Ayarlar bu tarayıcıda hatırlanacak'); }catch(e){ toast('Tarayıcı kaydı engelledi; "Projeyi kaydet"i kullanın'); } };
+$('#saveProj').onclick=()=>download(`${slug(F.modelName||F.brand)}-sketch.json`, new Blob([JSON.stringify({type:'sketch-project-v2',format:F,models,details,fabric,labelImg,composition})],{type:'application/json'}));
+$('#openProj').onclick=()=>$('#fileProj').click();
+$('#fileProj').onchange=async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  try{ const j=JSON.parse(await f.text()); F={...DEFAULT_FMT, ...(j.format||j)}; syncFmtInputs(); await autoColors(); renderAll(); toast('Format yüklendi'); }
-  catch(err){ toast('Dosya okunamadı: geçerli bir format .json dosyası seçin'); }
-};
-$('#saveProj').onclick = () => download(`sketch-${(F.brand||'form').toLowerCase()}-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify({type:'sketch-project', format:F, items, details}));
-$('#openProj').onclick = () => $('#fileProj').click();
-$('#fileProj').onchange = async e => {
-  const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  try{ const j=JSON.parse(await f.text()); if(j.format) F={...DEFAULT_FMT,...j.format}; items=(j.items||[]).map(x=>newItem(x)); details=(j.details||[]).map(x=>newDetail(x)); isSample=false; syncFmtInputs(); renderAll(); toast('Proje açıldı'); }
-  catch(err){ toast('Proje dosyası okunamadı'); }
-};
-$('#bulkApply').onclick = () => { const v=$('#bulkCode').value; items.forEach(it=>it.code=v); isSample=false; renderAll(); };
-$('#clearAll').onclick = (e) => {
-  const b=e.currentTarget;
-  if(b.dataset.armed){ items=[]; isSample=false; delete b.dataset.armed; b.textContent='Hepsini sil'; renderAll(); return; }
-  b.dataset.armed='1'; b.textContent='Emin misiniz?'; setTimeout(()=>{ delete b.dataset.armed; b.textContent='Hepsini sil'; },3000);
+  try{
+    const j=JSON.parse(await f.text());
+    F={...DEFAULT_FMT,...(j.format||{})}; models=(j.models||[]).map(newModel); details=(j.details||[]).map(newDetail);
+    fabric=j.fabric||null; labelImg=j.labelImg||null; composition=j.composition||''; sampleModels=sampleDetails=false;
+    syncInputs(); renderAll(); toast('Proje açıldı');
+  }catch(err){ toast('Proje dosyası okunamadı'); }
 };
 
 // ---------- Çıktı ----------
-$('#printBtn').onclick = () => window.print();
-$('#pdfBtn').onclick = async () => {
-  if(!window.html2canvas || !window.jspdf){ toast('PDF kütüphanesi yüklenemedi; "Yazdır / PDF olarak kaydet"i kullanın'); return; }
+$('#printBtn').onclick=()=>window.print();
+$('#pdfBtn').onclick=async()=>{
+  if(!window.html2canvas||!window.jspdf){ toast('PDF kütüphanesi yüklenemedi (internet gerekli). "Yazdır / PDF olarak kaydet"i kullanın.'); return; }
   const busy=document.createElement('div'); busy.className='busy'; busy.textContent='PDF hazırlanıyor…'; document.body.appendChild(busy);
+  const sh=$('#sheet');
   try{
     await document.fonts.ready;
-    const land = F.orient==='landscape';
-    const pdf = new jspdf.jsPDF({orientation:land?'landscape':'portrait', unit:'mm', format:'a4', compress:true});
-    const sheets=[...document.querySelectorAll('.sheet')];
-    for(let i=0;i<sheets.length;i++){
-      busy.textContent=`PDF hazırlanıyor… ${i+1}/${sheets.length}`;
-      const c = await html2canvas(sheets[i], {scale:2.5, useCORS:true, backgroundColor:'#ffffff', logging:false});
-      if(i) pdf.addPage('a4', land?'landscape':'portrait');
-      pdf.addImage(c.toDataURL('image/jpeg',0.92), 'JPEG', 0, 0, land?297:210, land?210:297);
-    }
-    pdf.save(`${(F.brand||'sketch').toLowerCase()}-${F.product.toLowerCase().replace(/[^a-zçğıöşü0-9]+/g,'-')}-${new Date().toISOString().slice(0,10)}.pdf`);
+    sh.style.transform='none';
+    const {W,H}=sheetSize();
+    const c=await html2canvas(sh,{scale:F.paper==='A3'?2.2:3, useCORS:true, backgroundColor:'#ffffff', logging:false});
+    const pdf=new jspdf.jsPDF({orientation:'landscape', unit:'mm', format:F.paper.toLowerCase(), compress:true});
+    pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,W,H);
+    pdf.save(`${slug(F.modelName||F.brand)}-${F.layout==='detay'?'detay':'renkler'}-${new Date().toISOString().slice(0,10)}.pdf`);
     toast('PDF indirildi');
   }catch(err){ console.error(err); toast('PDF oluşturulamadı: '+err.message); }
-  finally{ busy.remove(); }
+  finally{ sh.style.transform=`scale(${curScale})`; busy.remove(); }
 };
 
-syncFmtInputs();
+// Test ve dış kullanım için
+window.__sketch = {parseComposition, nameColor};
+
+syncInputs();
 renderAll();
 })();
 </script>
