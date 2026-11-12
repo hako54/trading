@@ -67,6 +67,17 @@ input[type=color]{width:28px;height:26px;border:1px solid var(--ui-line);border-
 #stage{position:relative;margin:0 auto}
 .toast{position:fixed;bottom:18px;right:18px;background:var(--ui-fg);color:#fff;padding:9px 14px;border-radius:6px;font-size:12.5px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:360px}
 .toast.on{opacity:1}
+.vg-canvas{width:100%;border-radius:6px;background:#eef0f2;cursor:crosshair;display:block;margin-top:8px}
+.pieces{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.piece{display:flex;align-items:center;gap:6px;font-size:12px;border:1px solid var(--ui-line);border-radius:6px;padding:4px 6px;cursor:pointer}
+.piece.on{border-color:var(--ui-accent);background:#f2f4fa}
+.piece .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.piece .sw{width:18px;height:14px;border-radius:2px;border:1px solid var(--ui-line);flex:none}
+.piece .grow{flex:1;min-width:0}
+.palette{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.palette button{border:1px solid var(--ui-line);border-radius:4px;padding:2px 6px 2px 4px;font-size:10.5px;background:#fff;cursor:pointer;display:flex;align-items:center;gap:4px}
+.palette button i{width:10px;height:10px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+input[type=range]{width:100%}
 .busy{position:fixed;inset:0;background:rgba(20,24,30,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;z-index:20}
 
 /* ---------- SAYFA ---------- */
@@ -141,6 +152,35 @@ input[type=color]{width:28px;height:26px;border:1px solid var(--ui-line);border-
     <div class="drop" id="dropModels" tabindex="0" role="button"><strong>Model / renk görselleri</strong>Tıklayın veya sürükleyin (çoklu). Renk adı otomatik yazılır.</div>
     <input type="file" id="fileModels" accept="image/*" multiple hidden>
     <div class="list" id="mlist"></div>
+  </section>
+
+  <section class="panel" id="vgPanel">
+    <div class="ph">Renk varyantı üret</div>
+    <p class="muted" style="margin:0 0 8px">Tek ürün görselinden aynı siluette başka renkler üretir. Görseldeki parçalar (üst, alt, iç T-shirt) ayrı ayrı boyanır; doku ve gölgeler korunur.</p>
+    <div class="grid2">
+      <label class="f full">Kaynak görsel
+        <select id="vgSource"></select></label>
+      <div class="drop full" id="dropVg" tabindex="0" role="button" style="padding:8px"><strong>ya da yeni ürün görseli yükleyin</strong></div>
+      <input type="file" id="fileVg" accept="image/*" hidden>
+      <label class="f full">Ürün / set tipi
+        <select id="vgSet"></select></label>
+    </div>
+    <canvas class="vg-canvas" id="vgCanvas" width="340" height="300" aria-label="Seçim önizlemesi: renkli alanlar boyanacak parçalar"></canvas>
+    <div class="muted" style="margin-top:4px">Renkli alanlar boyanacak. Eksik kalan yere parçayı seçip görsel üzerinde tıklayın.</div>
+    <div class="pieces" id="vgPieces"></div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn sm" id="vgAddPiece" type="button">+ Parça ekle</button>
+      <button class="btn sm" id="vgReset" type="button">Seçimi sıfırla</button>
+    </div>
+    <label class="f" style="margin-top:8px">Seçim hassasiyeti <span id="vgTolV"></span>
+      <input type="range" id="vgTol" min="8" max="50" value="22"></label>
+    <label class="f" style="margin-top:6px">Üretilecek renkler (virgülle ayırın; sette parça parça farklı renk için "/" kullanın)
+      <textarea id="vgColors" rows="2" placeholder="SİYAH, NAVY, STONE&#10;veya: NAVY / GRİ (üst / alt)"></textarea></label>
+    <div class="muted" style="margin-top:3px">Tek renk yazarsanız setin tüm dış parçaları o renge boyanır, içteki T-shirt olduğu gibi kalır. Parça sırası yukarıdaki listeyle aynıdır.</div>
+    <div class="palette" id="vgPalette"></div>
+    <label class="chk" style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin-top:8px"><input type="checkbox" id="vgKeep" checked> Kaynak görseli de listede tut</label>
+    <div class="row" style="margin-top:8px"><button class="btn primary" id="vgGo" type="button">Varyantları oluştur</button></div>
+    <div class="status" id="vgStatus"></div>
   </section>
 
   <section class="panel">
@@ -586,7 +626,7 @@ function renderFabric(){
   $('#fabricRow').innerHTML = fabric ? `<span class="muted">Kumaş dokusu yüklendi</span><button class="btn sm" id="fabDel" type="button">Kaldır</button>` : '';
   const lp=$('#labelPreview'); if(labelImg){ lp.src=labelImg; lp.hidden=false; } else lp.hidden=true;
 }
-function renderAll(){ renderModels(); renderDetails(); renderFabric(); render(); }
+function renderAll(){ renderModels(); renderDetails(); renderFabric(); render(); if(typeof vgSyncSources==='function'){ const prev=VG.srcId; vgSyncSources(); if(VG.srcId!==prev || (VG.srcId && !VG.canvas)) vgLoadSource(); } }
 
 function wireList(listSel, arr, onChange){
   $(listSel).addEventListener('input', e => {
@@ -649,6 +689,284 @@ $('#main').addEventListener('drop', e=>{ e.preventDefault(); addModels(e.dataTra
 $('#fabricRow').addEventListener('click', e=>{ if(e.target.id==='fabDel'){ fabric=null; renderAll(); } });
 $('#composition').addEventListener('input', e=>{ composition=e.target.value; compCheck(); clearTimeout(render.t); render.t=setTimeout(render,150); });
 
+// ---------- Renk varyantı üretici ----------
+const SETS = {
+  hirka:        {label:'Hırka (tek ürün)', pieces:[{n:'Hırka', band:[0.24,0.50], x:[0.20,0.36]}]},
+  ust:          {label:'Sweat / T-shirt / Ceket (tek üst)', pieces:[{n:'Üst', band:[0.24,0.46]}]},
+  esofman:      {label:'Örme pantolon / eşofman (tek alt)', pieces:[{n:'Eşofman', band:[0.56,0.84]}]},
+  sort:         {label:'Şort (tek alt)', pieces:[{n:'Şort', band:[0.50,0.62]}]},
+  hirkaEsofman: {label:'Hırka + eşofman set', pieces:[{n:'Hırka', band:[0.24,0.48], x:[0.20,0.36]}, {n:'Eşofman', band:[0.56,0.84]}]},
+  sweatEsofman: {label:'Sweat + eşofman set', pieces:[{n:'Sweat', band:[0.24,0.46]}, {n:'Eşofman', band:[0.56,0.84]}]},
+  sortTshirt:   {label:'Şort + T-shirt set', pieces:[{n:'T-shirt', band:[0.24,0.44]}, {n:'Şort', band:[0.50,0.62]}]},
+  uclu:         {label:'Eşofman + sweat + T-shirt set', pieces:[{n:'Sweat', band:[0.26,0.46], x:[0.22,0.36]}, {n:'Eşofman', band:[0.56,0.84]}, {n:'T-shirt', band:[0.17,0.27], x:[0.42,0.58], inner:true}]},
+  hirkaUclu:    {label:'Hırka + eşofman + T-shirt set', pieces:[{n:'Hırka', band:[0.26,0.46], x:[0.20,0.34]}, {n:'Eşofman', band:[0.56,0.84]}, {n:'T-shirt', band:[0.20,0.42], x:[0.42,0.58], inner:true}]}
+};
+const PIECE_TINT = ['#ff2d6f','#1fa8ff','#ffbf00','#2ecc71','#9b59ff'];
+const SYN = {'LACIVERT':'NAVY','KOYU LACIVERT':'KOYU NAVY','TAS':'STONE','KUM':'BEJ','ANTRASIT':'ANTRASİT','KIRIK BEYAZ':'KIRIK BEYAZ','BLACK':'SİYAH','WHITE':'BEYAZ','GREY':'GRİ','GRAY':'GRİ','BEIGE':'BEJ','KHAKI':'HAKİ','BURGUNDY':'BORDO','ECRU':'EKRU','CREAM':'KREM','BROWN':'KAHVE','GREEN':'YEŞİL','BLUE':'MAVİ','RED':'KIRMIZI','OLIVE':'ZEYTİN','MELANJ':'GRİ','GRI MELANJ':'GRİ'};
+function resolveColor(raw){
+  const s=String(raw||'').trim(); if(!s) return null;
+  if(/^#[0-9a-f]{6}$/i.test(s)) return {name:nameColor(s), hex:s.toLowerCase()};
+  const key=fold(s).toUpperCase().replace(/\s+/g,' ');
+  for(const [n,h] of COLOR_NAMES) if(fold(n).toUpperCase()===key) return {name:n, hex:h};
+  if(SYN[key]){ const n=SYN[key]; const h=COLOR_NAMES.find(c=>c[0]===n)?.[1]; if(h) return {name:upTR(s), hex:h}; }
+  return null;
+}
+
+const VG = {srcId:null, set:'sweatEsofman', tol:22, pieces:[], active:0, canvas:null, an:null};
+const LIN = new Float32Array(256).map((_,i)=>{const c=i/255;return c>0.04045?Math.pow((c+0.055)/1.055,2.4):c/12.92;});
+function labOf(r,g,b){
+  const R=LIN[r],G=LIN[g],B=LIN[b];
+  let X=(R*.4124+G*.3576+B*.1805)/.95047, Y=R*.2126+G*.7152+B*.0722, Z=(R*.0193+G*.1192+B*.9505)/1.08883;
+  const f=t=>t>0.008856?Math.cbrt(t):7.787*t+16/116; X=f(X);Y=f(Y);Z=f(Z);
+  return [116*Y-16, 500*(X-Y), 200*(Y-Z)];
+}
+function lab2rgb(L,a,b){
+  let y=(L+16)/116, x=a/500+y, z=y-b/200;
+  const f=t=>{const t3=t*t*t;return t3>0.008856?t3:(t-16/116)/7.787;};
+  x=.95047*f(x); y=f(y); z=1.08883*f(z);
+  const r=x*3.2406+y*-1.5372+z*-.4986, g=x*-.9689+y*1.8758+z*.0415, bb=x*.0557+y*-.2040+z*1.0570;
+  const c=v=>{v=v>0.0031308?1.055*Math.pow(v,1/2.4)-.055:12.92*v; return Math.max(0,Math.min(255,Math.round(v*255)));};
+  return [c(r),c(g),c(bb)];
+}
+function piecesFor(setKey){ return SETS[setKey].pieces.map(p=>({...p, seeds:[], target:null})); }
+
+// Görseldeki parçaları renk benzerliğiyle büyüterek bul (çok kaynaklı bölge büyütme)
+function analyze(src, pieces, tol){
+  const S=520, k=Math.min(1,S/Math.max(src.width,src.height));
+  const w=Math.round(src.width*k), h=Math.round(src.height*k);
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const x=c.getContext('2d'); x.drawImage(src,0,0,w,h);
+  const d=x.getImageData(0,0,w,h).data, N=w*h;
+  const L=new Float32Array(N), A=new Float32Array(N), B=new Float32Array(N);
+  for(let i=0;i<N;i++){ const l=labOf(d[i*4],d[i*4+1],d[i*4+2]); L[i]=l[0];A[i]=l[1];B[i]=l[2]; }
+  const border=[]; for(let i=0;i<w;i+=2){ border.push(i, (h-1)*w+i); } for(let j=0;j<h*0.6;j+=2){ border.push(j*w, j*w+w-1); }
+  const med=arr=>{const v=border.map(i=>arr[i]).sort((a,b)=>a-b);return v[v.length>>1];};
+  const bg=[med(L),med(A),med(B)];
+  const dist=(i,r)=>{const dl=(L[i]-r[0])*0.4, da=A[i]-r[1], db=B[i]-r[2]; return Math.sqrt(dl*dl+da*da+db*db);};
+  const bgd=i=>dist(i,bg);
+  const labels=new Int8Array(N).fill(-1), q=new Int32Array(N); let qh=0, qt=0;
+  const isSkin=(l,a,b)=>l>35&&l<85&&a>6&&a<30&&b>8&&b<35;
+  const refs=[];
+  pieces.forEach(p=>refs.push(refFor(p)));
+  function refFor(p){
+    if(p.seeds.length){
+      let s=[0,0,0],n=0;
+      for(const sd of p.seeds){ const cx=Math.round(sd.x*w), cy=Math.round(sd.y*h);
+        for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){ const xx=cx+dx,yy=cy+dy; if(xx<0||yy<0||xx>=w||yy>=h) continue; const i=yy*w+xx; s[0]+=L[i];s[1]+=A[i];s[2]+=B[i];n++; } }
+      return s.map(v=>v/Math.max(1,n));
+    }
+    const xr=p.x||[0.22,0.78], bins=new Map();
+    for(let j=Math.floor(h*p.band[0]);j<Math.floor(h*p.band[1]);j++) for(let i=Math.floor(w*xr[0]);i<Math.floor(w*xr[1]);i++){
+      const idx=j*w+i; if(bgd(idx)<10) continue;
+      const key=Math.round(L[idx]/8)+'|'+Math.round(A[idx]/6)+'|'+Math.round(B[idx]/6);
+      const b=bins.get(key)||{n:0,l:0,a:0,b:0}; b.n++; b.l+=L[idx]; b.a+=A[idx]; b.b+=B[idx]; bins.set(key,b);
+    }
+    const sorted=[...bins.values()].sort((a,b)=>b.n-a.n);
+    if(!p.inner){ const t=sorted[0]; return t ? [t.l/t.n, t.a/t.n, t.b/t.n] : null; }
+    // İç parça (örn. T-shirt): üst parçadan ve tenden farklı ilk belirgin renk
+    const total=sorted.reduce((s,b)=>s+b.n,0);
+    for(const b of sorted){
+      if(b.n<total*0.04) break;
+      const r=[b.l/b.n,b.a/b.n,b.b/b.n];
+      if(isSkin(...r)) continue;
+      if(refs.some(o=>o && Math.hypot((r[0]-o[0])*0.4,r[1]-o[1],r[2]-o[2])<tol)) continue;
+      return r;
+    }
+    return null;
+  }
+  // Zemine yakın renkteki parçalar (örn. beyaz T-shirt) zemine taşmasın: büyüme alanını sınırla
+  const lim=pieces.map((p,pi)=>{
+    const r=refs[pi]; if(!r) return null;
+    if(Math.hypot((r[0]-bg[0])*0.4,r[1]-bg[1],r[2]-bg[2])>=tol*1.2) return null;
+    if(p.seeds.length){ const xs=p.seeds.map(s=>s.x), ys=p.seeds.map(s=>s.y);
+      return [Math.min(...xs)-0.07, Math.max(...xs)+0.07, Math.min(...ys)-0.05, Math.max(...ys)+0.05].map((v,i)=>Math.round(v*(i<2?w:h))); }
+    const xr=p.x||[0.22,0.78]; return [xr[0]-0.04,xr[1]+0.04,p.band[0]-0.03,p.band[1]+0.03].map((v,i)=>Math.round(v*(i<2?w:h)));
+  });
+  const inLim=(j,pi)=>{ const L2=lim[pi]; if(!L2) return true; const xx=j%w, yy=(j/w)|0; return xx>=L2[0]&&xx<=L2[1]&&yy>=L2[2]&&yy<=L2[3]; };
+  pieces.forEach((p,pi)=>{
+    const r=refs[pi]; if(!r) return;
+    const push=i=>{ if(labels[i]===-1){ labels[i]=pi; q[qt++]=i; } };
+    if(p.seeds.length){
+      for(const sd of p.seeds){ const cx=Math.round(sd.x*w), cy=Math.round(sd.y*h);
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ const xx=cx+dx,yy=cy+dy; if(xx>=0&&yy>=0&&xx<w&&yy<h) push(yy*w+xx); } }
+    } else {
+      const xr=p.x||[0.22,0.78];
+      for(let j=Math.floor(h*p.band[0]);j<Math.floor(h*p.band[1]);j+=2) for(let i=Math.floor(w*xr[0]);i<Math.floor(w*xr[1]);i+=2){
+        const idx=j*w+i; const dd=dist(idx,r); if(dd<tol*0.7 && (lim[pi] || dd<bgd(idx))) push(idx);
+      }
+    }
+  });
+  while(qh<qt){
+    const i=q[qh++], pi=labels[i], r=refs[pi], xx=i%w;
+    const nb=[xx>0?i-1:-1, xx<w-1?i+1:-1, i-w, i+w];
+    for(const j of nb){ if(j<0||j>=N||labels[j]!==-1) continue; const dd=dist(j,r); if(dd<tol && (lim[pi] ? inLim(j,pi) : dd<bgd(j))){ labels[j]=pi; q[qt++]=j; } }
+  }
+  // Küçük boşlukları kapat (dikiş, doku gürültüsü)
+  for(let pi=0;pi<pieces.length;pi++){
+    const m=new Uint8Array(N); for(let i=0;i<N;i++) if(labels[i]===pi) m[i]=1;
+    const dil=new Uint8Array(N);
+    for(let j=1;j<h-1;j++)for(let i=1;i<w-1;i++){const p=j*w+i; dil[p]=m[p]|m[p-1]|m[p+1]|m[p-w]|m[p+w];}
+    for(let j=1;j<h-1;j++)for(let i=1;i<w-1;i++){const p=j*w+i; if(labels[p]===-1 && dil[p]&dil[p-1]&dil[p+1]&dil[p-w]&dil[p+w]) labels[p]=pi;}
+  }
+  // Aynı renkteki parçalar (örn. lacivert sweat + lacivert eşofman): sınırı bel hizasından çiz
+  for(let a=0;a<pieces.length;a++) for(let b=a+1;b<pieces.length;b++){
+    const pa=pieces[a], pb=pieces[b], ra=refs[a], rb=refs[b];
+    if(!ra||!rb||pa.seeds.length||pb.seeds.length||pa.inner||pb.inner) continue;
+    if(Math.hypot((ra[0]-rb[0])*0.4,ra[1]-rb[1],ra[2]-rb[2])>=tol) continue;
+    const [up,lo]=(pa.band[0]+pa.band[1])<(pb.band[0]+pb.band[1])?[a,b]:[b,a];
+    const cut=Math.round(h*(pieces[up].band[1]+pieces[lo].band[0])/2);
+    for(let i=0;i<N;i++){ const l=labels[i]; if(l!==up&&l!==lo) continue; labels[i]=Math.floor(i/w)<cut?up:lo; }
+  }
+  const means=pieces.map((_,pi)=>{let s=[0,0,0],n=0; for(let i=0;i<N;i++) if(labels[i]===pi){s[0]+=L[i];s[1]+=A[i];s[2]+=B[i];n++;} return n?s.map(v=>v/n):null;});
+  const counts=pieces.map((_,pi)=>{let n=0; for(let i=0;i<N;i++) if(labels[i]===pi) n++; return n/N;});
+  return {w,h,labels,means,counts};
+}
+
+function recolor(src, an, targets){
+  const W=src.width, H=src.height;
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const ox=out.getContext('2d'); ox.drawImage(src,0,0);
+  const img=ox.getImageData(0,0,W,H), px=img.data;
+  const alphas=targets.map((t,pi)=>{
+    if(!t||!an.means[pi]) return null;
+    const mc=document.createElement('canvas'); mc.width=an.w; mc.height=an.h;
+    const mx=mc.getContext('2d'), md=mx.createImageData(an.w,an.h);
+    for(let i=0;i<an.labels.length;i++) if(an.labels[i]===pi){ md.data[i*4+3]=255; }
+    mx.putImageData(md,0,0);
+    const big=document.createElement('canvas'); big.width=W; big.height=H;
+    const bx=big.getContext('2d'); bx.imageSmoothingEnabled=true; bx.filter=`blur(${Math.max(0.6,W/an.w*0.45)}px)`; bx.drawImage(mc,0,0,W,H);
+    return bx.getImageData(0,0,W,H).data;
+  });
+  const params=targets.map((t,pi)=>{
+    if(!t||!an.means[pi]) return null;
+    const tl=rgb2lab(hex2rgb(t)), s=an.means[pi];
+    const sc=Math.max(0.4,Math.min(2.6,Math.pow((tl[0]+10)/(s[0]+10),0.7)));
+    return {tl,s,sc};
+  });
+  for(let i=0,n=W*H;i<n;i++){
+    let sum=0; for(let pi=0;pi<params.length;pi++) if(params[pi]) sum+=alphas[pi][i*4+3];
+    if(!sum) continue;
+    const o=i*4, l=labOf(px[o],px[o+1],px[o+2]);
+    const norm=Math.max(255,sum); let r=0,g=0,b=0;
+    for(let pi=0;pi<params.length;pi++){
+      const P=params[pi]; if(!P) continue;
+      const a=alphas[pi][o+3]; if(!a) continue;
+      const nl=Math.max(0,Math.min(100,P.tl[0]+(l[0]-P.s[0])*P.sc));
+      const rgb=lab2rgb(nl, P.tl[1]+(l[1]-P.s[1])*0.5, P.tl[2]+(l[2]-P.s[2])*0.5);
+      const t=a/norm; r+=rgb[0]*t; g+=rgb[1]*t; b+=rgb[2]*t;
+    }
+    const keep=1-Math.min(255,sum)/255;
+    px[o]=px[o]*keep+r; px[o+1]=px[o+1]*keep+g; px[o+2]=px[o+2]*keep+b;
+  }
+  ox.putImageData(img,0,0);
+  return out.toDataURL('image/jpeg',0.92);
+}
+
+async function vgLoadSource(){
+  const md=models.find(m=>m.id===VG.srcId && m.img);
+  VG.canvas=null; VG.an=null;
+  if(!md){ vgDraw(); return; }
+  const im=await loadImg(md.img); if(!im) return;
+  const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; c.getContext('2d').drawImage(im,0,0);
+  VG.canvas=c; vgAnalyze();
+}
+function vgAnalyze(){
+  if(!VG.canvas){ vgDraw(); return; }
+  VG.an=analyze(VG.canvas, VG.pieces, VG.tol);
+  vgDraw(); vgRenderPieces();
+}
+function vgDraw(){
+  const cv=$('#vgCanvas'), x=cv.getContext('2d');
+  if(!VG.canvas){ cv.width=340; cv.height=120; x.fillStyle='#eef0f2'; x.fillRect(0,0,340,120); x.fillStyle='#68717b'; x.font='13px Jost, sans-serif'; x.textAlign='center'; x.fillText('Önce bir ürün görseli seçin veya yükleyin',170,64); return; }
+  const W=680, H=Math.round(W*VG.canvas.height/VG.canvas.width);
+  cv.width=W; cv.height=H; x.drawImage(VG.canvas,0,0,W,H);
+  const an=VG.an; if(!an) return;
+  const mc=document.createElement('canvas'); mc.width=an.w; mc.height=an.h;
+  const mx=mc.getContext('2d'), d=mx.createImageData(an.w,an.h);
+  const tints=PIECE_TINT.map(hex2rgb);
+  for(let i=0;i<an.labels.length;i++){ const l=an.labels[i]; if(l<0) continue; const t=tints[l%tints.length]; d.data.set([t[0],t[1],t[2],110],i*4); }
+  mx.putImageData(d,0,0); x.drawImage(mc,0,0,W,H);
+  VG.pieces.forEach((p,pi)=>p.seeds.forEach(s=>{ x.beginPath(); x.arc(s.x*W,s.y*H,6,0,7); x.fillStyle=PIECE_TINT[pi%5]; x.fill(); x.lineWidth=2; x.strokeStyle='#fff'; x.stroke(); }));
+}
+function vgRenderPieces(){
+  $('#vgPieces').innerHTML=VG.pieces.map((p,pi)=>{
+    const m=VG.an?.means?.[pi]; const hex=m?rgb2hex(...lab2rgb(...m)):null; const cov=VG.an?.counts?.[pi]||0;
+    return `<div class="piece ${pi===VG.active?'on':''}" data-pi="${pi}" role="button" tabindex="0">
+      <span class="dot" style="background:${PIECE_TINT[pi%5]}"></span>
+      <span class="grow">${esc(p.n)} ${pi===VG.active?'<span class="muted">· tıklama bu parçaya</span>':''}</span>
+      ${hex?`<span class="sw" style="background:${hex}" title="Bulunan renk"></span><span class="tag">${esc(nameColor(hex))}</span>`:`<span class="tag" style="color:var(--ui-warn)">${VG.canvas?'bulunamadı, tıklayın':''}</span>`}
+      ${cov&&cov<0.004?'<span class="tag" style="color:var(--ui-warn)">çok küçük</span>':''}
+      ${VG.pieces.length>1?`<button class="btn sm" data-del="${pi}" type="button" aria-label="Parçayı kaldır">✕</button>`:''}
+    </div>`;}).join('');
+}
+function vgSyncSources(){
+  const withImg=models.filter(m=>m.img);
+  if(!withImg.find(m=>m.id===VG.srcId)) VG.srcId=withImg[0]?.id||null;
+  $('#vgSource').innerHTML = withImg.length ? withImg.map((m,i)=>`<option value="${m.id}" ${m.id===VG.srcId?'selected':''}>${i+1}. ${esc(m.name||'Görsel')}</option>`).join('') : '<option value="">Henüz görsel yok</option>';
+}
+$('#vgSet').innerHTML=Object.entries(SETS).map(([k,v])=>`<option value="${k}">${esc(v.label)}</option>`).join('');
+$('#vgSet').value=VG.set; VG.pieces=piecesFor(VG.set);
+$('#vgPalette').innerHTML=COLOR_NAMES.map(([n,h])=>`<button type="button" data-c="${n}"><i style="background:${h}"></i>${n}</button>`).join('');
+$('#vgTolV').textContent=VG.tol;
+$('#vgSet').onchange=e=>{ VG.set=e.target.value; VG.pieces=piecesFor(VG.set); VG.active=0; vgAnalyze(); };
+$('#vgSource').onchange=e=>{ VG.srcId=e.target.value; vgLoadSource(); };
+$('#vgTol').oninput=e=>{ VG.tol=+e.target.value; $('#vgTolV').textContent=VG.tol; clearTimeout(vgAnalyze.t); vgAnalyze.t=setTimeout(vgAnalyze,150); };
+$('#vgReset').onclick=()=>{ VG.pieces=piecesFor(VG.set); VG.active=0; vgAnalyze(); };
+$('#vgAddPiece').onclick=()=>{ VG.pieces.push({n:'Parça '+(VG.pieces.length+1), band:[0,0], x:[0,0], seeds:[]}); VG.active=VG.pieces.length-1; vgRenderPieces(); vgDraw(); toast('Görsel üzerinde bu parçaya tıklayın'); };
+$('#vgPieces').addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]'); if(del){ VG.pieces.splice(+del.dataset.del,1); VG.active=0; vgAnalyze(); return; }
+  const p=e.target.closest('[data-pi]'); if(p){ VG.active=+p.dataset.pi; vgRenderPieces(); }
+});
+$('#vgCanvas').addEventListener('click',e=>{
+  if(!VG.canvas) return;
+  const r=e.currentTarget.getBoundingClientRect();
+  const p=VG.pieces[VG.active]; if(!p) return;
+  p.seeds.push({x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height});
+  vgAnalyze();
+});
+$('#vgPalette').addEventListener('click',e=>{
+  const b=e.target.closest('[data-c]'); if(!b) return;
+  const t=$('#vgColors'); t.value = (t.value.trim()? t.value.trim().replace(/,\s*$/,'')+', ' : '') + b.dataset.c; t.focus();
+});
+wireDrop($('#dropVg'), $('#fileVg'), async files=>{
+  const f=[...files][0]; if(!f) return;
+  if(sampleModels){ models=[]; sampleModels=false; }
+  const r=await readImage(f); const md=newModel({img:r.url, ar:r.w/r.h}); await detectColor(md); models.push(md);
+  VG.srcId=md.id; renderAll();
+});
+$('#vgGo').onclick=async()=>{
+  const st=$('#vgStatus'); st.className='status';
+  if(!VG.canvas||!VG.an){ st.textContent='Önce kaynak görsel seçin.'; st.className='status err'; return; }
+  const lines=$('#vgColors').value.split(/[,\n;]+/).map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){ st.textContent='Üretilecek renkleri yazın veya aşağıdaki renklere tıklayın.'; st.className='status err'; return; }
+  const bad=[], jobs=[];
+  for(const line of lines){
+    const parts=line.split('/').map(s=>s.trim()).filter(Boolean).map(s=>({raw:s, c:resolveColor(s)}));
+    parts.filter(p=>!p.c).forEach(p=>bad.push(p.raw));
+    if(parts.some(p=>!p.c)) continue;
+    // Yazılan renk sayısı parçadan azsa: dış parçalar son rengi alır, iç parça (T-shirt) orijinal kalır
+    const targets=VG.pieces.map((pc,i)=>parts[i] ? parts[i].c.hex : (pc.inner ? null : parts[parts.length-1].c.hex));
+    const uniq=[...new Set(parts.map(p=>p.c.name))];
+    jobs.push({name:upTR(uniq.length>1?parts.map(p=>p.raw).join(' / '):parts[0].raw), hex:parts[0].c.hex, targets});
+  }
+  if(bad.length){ st.textContent=`Tanınmayan renk: ${bad.join(', ')}. Listeden seçin veya #RRGGBB yazın.`; st.className='status err'; if(!jobs.length) return; }
+  const busy=document.createElement('div'); busy.className='busy'; document.body.appendChild(busy);
+  try{
+    const src=models.find(m=>m.id===VG.srcId); const at=models.indexOf(src);
+    const made=[];
+    for(let i=0;i<jobs.length;i++){
+      busy.textContent=`Varyant oluşturuluyor… ${i+1}/${jobs.length}`;
+      await new Promise(r=>setTimeout(r,30));
+      const url=recolor(VG.canvas, VG.an, jobs[i].targets);
+      made.push(newModel({img:url, ar:src.ar, name:jobs[i].name, color:jobs[i].hex, manual:true, variantOf:src.id}));
+    }
+    models.splice(at+1,0,...made);
+    if(!$('#vgKeep').checked){ models.splice(at,1); }
+    renderAll();
+    st.textContent=`${made.length} varyant eklendi${bad.length?' (tanınmayanlar atlandı)':''}. Kontrol edin; gerekirse hassasiyeti değiştirip tekrar üretin.`;
+  } finally { busy.remove(); }
+};
+
 // ---------- Ayarlar ----------
 const fmtIds=['paper','bg','brand','subtitle','modelName','product','accent'];
 function syncInputs(){
@@ -704,7 +1022,7 @@ $('#pdfBtn').onclick=async()=>{
 };
 
 // Test ve dış kullanım için
-window.__sketch = {parseComposition, nameColor};
+window.__sketch = {parseComposition, nameColor, VG};
 
 syncInputs();
 renderAll();
